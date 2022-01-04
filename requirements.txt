@@ -21,3 +21,4 @@ pytorch-lightning==1.5.4
 backoff==1.11.1
 requests==2.26.0
 timm==0.4.12
+networkx==2.6.3
