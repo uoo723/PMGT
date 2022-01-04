@@ -5,7 +5,8 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 ## Log
 
 [2022.01.04]  
-    - 이미지 다운로드 ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))
+    - 이미지 다운로드 ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))  
+    - Visual (InceptionV4) & Textual (BERT) feature 추출
 
 [2022.01.03]  
     - Amazon Review 데이터셋 다운로드 ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))
