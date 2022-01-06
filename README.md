@@ -35,8 +35,10 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 ## Log
 
 [2022.01.06]  
-    - NCF Dataset     
-    - NDCG
+    - VG 데이터셋 통계  
+    - NCF Dataset 구현  
+    - NDCG@k 구현   
+    - Recall@k 구현  
 
 [2022.01.05]  
     - Item Graph 생성   

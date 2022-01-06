@@ -24,3 +24,14 @@ def get_ndcg(prediction: TPredict, targets: TTarget, mlb: TMlb = None, top=5) ->
         p = mlb.transform(prediction[:, i : i + 1])
         dcg += p.multiply(targets).sum(axis=-1) * log[i]
     return np.average(dcg / log.cumsum()[np.minimum(targets.sum(axis=-1), top) - 1])
+
+
+def get_recall(
+    prediction: TPredict, targets: TTarget, mlb: TMlb = None, top=5
+) -> float:
+    if mlb is None:
+        mlb = MultiLabelBinarizer(sparse_output=True).fit(targets)
+    if not isinstance(targets, csr_matrix):
+        targets = mlb.transform(targets)
+    prediction = mlb.transform(prediction[:, :top])
+    return (prediction.multiply(targets).sum(axis=-1) / targets.sum(axis=-1)).mean()
