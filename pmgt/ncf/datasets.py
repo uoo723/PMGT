@@ -3,12 +3,13 @@ Created on 2022/01/06
 @author Sangwoo Han
 @ref https://github.com/guoyang9/NCF/blob/master/data_utils.py
 """
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sp
 import torch
-from collections import defaultdict
+from scipy.sparse import csr_matrix
+from sklearn.preprocessing import MultiLabelBinarizer
 
 TFeatures = List[Tuple[int, int]]
 
@@ -33,9 +34,21 @@ class NCFDataset(torch.utils.data.Dataset):
         self.num_ng = num_ng
         self.is_training = is_training
         self.user_item_mat, self.users, self.items = self._build_mat(features)
+        self._gt = None
+        self._mlb = None
 
         if not self.is_training:
             self.test_data = self._build_test_data()
+
+    @property
+    def gt(self) -> csr_matrix:
+        assert not self.is_training, "gt is only accessible, when testing"
+        return self._gt
+
+    @property
+    def mlb(self) -> MultiLabelBinarizer:
+        assert not self.is_training, "mlb is only accessible, when testing"
+        return self._mlb
 
     def _build_mat(
         self, features: TFeatures
@@ -58,10 +71,17 @@ class NCFDataset(torch.utils.data.Dataset):
 
         s = 0
         test_data = []
+        gt = []
         for i, num in enumerate(item_nums):
             e = s + num
             test_data.append((users[i], items[s:e].tolist()))
+            gt.append(items[s:e].copy())
             s = e
+
+        self._mlb = MultiLabelBinarizer(
+            sparse_output=True, classes=np.arange(self.num_item)
+        )
+        self._gt = self._mlb.fit_transform(gt)
 
         return test_data
 
