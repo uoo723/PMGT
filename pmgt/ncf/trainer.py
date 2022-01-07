@@ -200,6 +200,7 @@ class TrainerModel(pl.LightningModule):
         "log_dir",
         "experiment_name",
         "data_dir",
+        "eval_ckpt_path",
     ]
 
     def __init__(self, loss_func: Callable, **args: Any) -> None:
