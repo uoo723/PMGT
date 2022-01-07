@@ -89,7 +89,7 @@ class NCFDataset(torch.utils.data.Dataset):
         assert self.is_training, "no need to sampling when testing"
 
         features_ng = []
-        for x in self.features:
+        for x in self._features:
             u = x[0]
             for _ in range(self.num_ng):
                 j = np.random.randint(self.num_item)
@@ -97,7 +97,7 @@ class NCFDataset(torch.utils.data.Dataset):
                     j = np.random.randint(self.num_item)
                 features_ng.append([u, j])
 
-        labels_ps = np.ones(len(self.features), dtype=np.float32)
+        labels_ps = np.ones(len(self._features), dtype=np.float32)
         labels_ng = np.zeros(len(features_ng), dtype=np.float32)
 
         self.features = self._features + features_ng
@@ -113,7 +113,7 @@ class NCFDataset(torch.utils.data.Dataset):
             user = self.features[idx][0]
             item = self.features[idx][1]
             label = self.labels[idx]
-            return user, item, label
+            return (user, item), label
 
         user, items = self.test_data[idx]
         candidate_items = items.copy()
@@ -126,7 +126,6 @@ class NCFDataset(torch.utils.data.Dataset):
             labels.append(0)
 
         return (
-            user,
-            np.asarray(candidate_items, dtype=np.int64),
+            (user, np.asarray(candidate_items, dtype=np.int64)),
             np.asarray(labels, dtype=np.float32),
         )

@@ -34,6 +34,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.07]  
+    - NCF Training 구현  
+
 [2022.01.06]  
     - VG 데이터셋 통계  
     - NCF Dataset 구현  
