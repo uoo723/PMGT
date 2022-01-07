@@ -4,11 +4,6 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Experiments
 
-n10: 0.0893
-    n20: 0.1138
-    r10: 0.1451
-    r20: 0.2195
-
 <table>
   <tr>
     <td>Datasets</td>
