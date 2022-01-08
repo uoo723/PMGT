@@ -13,8 +13,8 @@ import click
 import optuna
 from attrdict import AttrDict
 from logzero import logger
-from optuna import Trial
-from optuna.study.study import Study
+from optuna import Study, Trial
+from optuna.trial import TrialState
 from ruamel.yaml import YAML
 
 from main import cli
@@ -39,6 +39,18 @@ def _get_hp_params(trial: Trial, hp_params: Dict):
         elif value["type"] == "int":
             p[key] = trial.suggest_int(key, *value["value"])
     return p
+
+
+def _max_trial_callback(study: Study, trial: Trial, n_trials: int) -> None:
+    n_complete = len(
+        [
+            t
+            for t in study.trials
+            if t.state == TrialState.COMPLETE or t.state == TrialState.RUNNING
+        ]
+    )
+    if n_complete >= n_trials:
+        study.stop()
 
 
 def objective(
@@ -114,7 +126,7 @@ def hp_tuning(**args):
                 train_func=train_func,
                 criterion="test/" + train_params.early_criterion,
             ),
-            n_trials=args.n_trials,
+            callbacks=[partial(_max_trial_callback, n_trials=args.n_trials)]
         )
     except KeyboardInterrupt:
         logger.info("Stop tuning.")
