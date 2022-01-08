@@ -125,6 +125,7 @@ from pmgt.utils import log_elapsed_time, save_args
 @click.option("--valid-size", default=0.2, help="validation dataset size")
 @click.option("--data-dir", type=click.Path(), default="./data", help="data directory")
 @click.option("--log-dir", type=click.Path(), default="./logs", help="log directory")
+@click.option('--tags', type=(str, str), multiple=True, help='set mlflow run tags')
 @click.option(
     "--experiment-name", type=click.STRING, default="NCF", help="experiment name"
 )

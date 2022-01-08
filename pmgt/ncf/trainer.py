@@ -243,6 +243,7 @@ class TrainerModel(pl.LightningModule):
         "experiment_name",
         "data_dir",
         "eval_ckpt_path",
+        "tags",
     ]
 
     def __init__(self, loss_func: Callable, **args: Any) -> None:
@@ -270,6 +271,10 @@ class TrainerModel(pl.LightningModule):
     def on_fit_start(self):
         self.logger.experiment.set_tag(self.logger.run_id, "run_id", self.logger.run_id)
         self.logger.experiment.set_tag(self.logger.run_id, "host", os.uname()[1])
+
+        for k, v in self.args.tags:
+            self.logger.experiment.set_tag(self.logger.run_id, k, v)
+
         logger.info(f"run_id: {self.logger.run_id}")
 
         if "run_script" in self.args:

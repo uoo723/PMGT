@@ -50,6 +50,7 @@ def objective(
 ) -> float:
     params = copy.deepcopy(train_params)
     params.update(_get_hp_params(trial, hp_params))
+    params.tags = list(params.tags) + [("trial", trial.number)]
     results = train_func(is_hptuning=True, **params)
     return results[criterion]
 
@@ -93,6 +94,8 @@ def hp_tuning(**args):
     storage_path = os.path.abspath(args.storage_path)
 
     os.makedirs(os.path.dirname(storage_path), exist_ok=True)
+
+    train_params.tags = [("study_name", args.study_name)]
 
     direction = "minimize" if train_params.early_criterion == "loss" else "maximize"
     study: Study = optuna.create_study(
