@@ -2,8 +2,8 @@
 
 args=(
     --study-name "NCF-GMF"
-    --train-config-path './config/train_ncf_params.json'
-    --hp-config-path './config/hpo_ncf_gmf_params.yaml'
+    --train-config-path './config/hpo/train_ncf_gmf_params.json'
+    --hp-config-path './config/hpo/hpo_ncf_gmf_params.yaml'
     --n-trials 16
     --train-func 'train_ncf'
 )
