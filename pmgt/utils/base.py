@@ -2,13 +2,18 @@
 Created on 2022/01/05
 @author Sangwoo Han
 """
+import copy
+import json
+import os
 import random
 import time
 from datetime import timedelta
 from functools import wraps
+from typing import Any, Dict, Union
 
 import numpy as np
 import torch
+from attrdict import AttrDict
 from logzero import logger
 
 
@@ -32,3 +37,11 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
+
+
+def save_args(args: Union[Dict[str, Any], AttrDict], path: str) -> None:
+    args = copy.deepcopy(args)
+    args.pop("run_script")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf8") as f:
+        json.dump(args, f, indent=4, ensure_ascii=False)

@@ -1,0 +1,7 @@
+lr:
+  type: categorical
+  value: [1e-4, 5e-4, 1e-3, 5e-3]
+
+factor_num:
+  type: categorical
+  value: [8, 16, 32, 64]

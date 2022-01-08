@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 from transformers import get_scheduler
-
+from mlflow.entities import Run
 from ..callbacks import MLFlowExceptionCallback
 from ..metrics import get_ndcg, get_recall
 from ..ncf.datasets import NCFDataset
@@ -157,10 +157,16 @@ def _get_dataloader(
     return train_dataloader, valid_dataloader, test_dataloader
 
 
+def _get_run(log_dir: str, run_id: str) -> Run:
+    client = MlflowClient(log_dir)
+    run = client.get_run(run_id)
+    return run
+
+
 def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
-    ckpt_path, params = _get_ckpt_path(
-        log_dir, run_id, load_best=True, return_params=True
-    )
+    ckpt_path = _get_ckpt_path(log_dir, run_id, load_best=True)
+    params = AttrDict(_get_run(log_dir, run_id).data.params)
+
     ckpt = torch.load(ckpt_path, map_location="cpu")
     model = NCF(
         int(params.num_user),
@@ -180,33 +186,35 @@ def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
 
 
 def _get_model(args: AttrDict) -> nn.Module:
-    if args.model_name == "NeuMF-pre":
-        GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
-        MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
+    if args.run_id is not None:
+        model = _load_pretrained_model(args.log_dir, args.run_id)
     else:
-        GMF_model = MLP_model = None
+        if args.model_name == "NeuMF-pre":
+            GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
+            MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
+        else:
+            GMF_model = MLP_model = None
 
-    model = NCF(
-        args.num_user,
-        args.num_item,
-        args.factor_num,
-        args.num_layers,
-        args.emb_dropout,
-        args.dropout,
-        args.model_name,
-        GMF_model=GMF_model,
-        MLP_model=MLP_model,
-        alpha=args.alpha,
-    )
+        model = NCF(
+            args.num_user,
+            args.num_item,
+            args.factor_num,
+            args.num_layers,
+            args.emb_dropout,
+            args.dropout,
+            args.model_name,
+            GMF_model=GMF_model,
+            MLP_model=MLP_model,
+            alpha=args.alpha,
+        )
 
     return model
 
 
 def _get_ckpt_path(
-    log_dir: str, run_id: str, load_best: bool = False, return_params: bool = False
+    log_dir: str, run_id: str, load_best: bool = False
 ) -> Union[str, Tuple[str, AttrDict]]:
-    client = MlflowClient(log_dir)
-    run = client.get_run(run_id)
+    run = _get_run(log_dir, run_id)
     ckpt_root_dir = os.path.join(log_dir, run.info.experiment_id, run_id, "checkpoints")
     ckpt_path = os.path.join(ckpt_root_dir, "last.ckpt")
     if load_best:
@@ -215,9 +223,6 @@ def _get_ckpt_path(
             0
         ]
         ckpt_path = ckpt["callbacks"][key]["best_model_path"]
-
-    if return_params:
-        return ckpt_path, AttrDict(run.data.params)
 
     return ckpt_path
 
@@ -465,7 +470,9 @@ def train(args: AttrDict) -> Tuple[float, pl.Trainer]:
     return best_score, trainer
 
 
-def test(args: AttrDict, trainer: Optional[pl.Trainer] = None) -> None:
+def test(
+    args: AttrDict, trainer: Optional[pl.Trainer] = None, is_hptuning: bool = False
+) -> Dict[str, float]:
     if args.mode == "eval":
         assert args.run_id is not None, "run_id must be provided"
         ckpt_path = _get_ckpt_path(args.log_dir, args.run_id, True)
@@ -482,9 +489,14 @@ def test(args: AttrDict, trainer: Optional[pl.Trainer] = None) -> None:
     )
 
     results = trainer.test(
-        trainer_model, args.test_dataloader, ckpt_path=ckpt_path, verbose=False
+        trainer_model,
+        args.valid_dataloader if is_hptuning else args.test_dataloader,
+        ckpt_path=ckpt_path,
+        verbose=False,
     )[0]
     metrics = ["n10", "n20", "r10", "r20"]
 
     msg = "\n" + "\n".join([f"{m}: {results['test/' + m]:.4f}" for m in metrics])
     logger.info(msg)
+
+    return results
