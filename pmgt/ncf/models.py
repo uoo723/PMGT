@@ -36,6 +36,7 @@ class NCF(nn.Module):
         model: str = "NeuMF-end",
         GMF_model: Optional[NCF] = None,
         MLP_model: Optional[NCF] = None,
+        alpha: float = 0.5,
     ) -> None:
         super().__init__()
         assert model in ["MLP", "GMF", "NeuMF-end", "NeuMF-pre"]
@@ -55,6 +56,8 @@ class NCF(nn.Module):
         )
 
         self.emb_dropout = nn.Dropout(p=emb_dropout)
+
+        self.alpha = alpha
 
         MLP_modules = []
         for i in range(num_layers):
@@ -106,17 +109,18 @@ class NCF(nn.Module):
             # predict layers
             predict_weight = torch.cat(
                 [
-                    self.GMF_model.predict_layer.weight,
-                    self.MLP_model.predict_layer.weight,
+                    self.alpha * self.GMF_model.predict_layer.weight,
+                    (1 - self.alpha) * self.MLP_model.predict_layer.weight,
                 ],
                 dim=1,
             )
             precit_bias = (
-                self.GMF_model.predict_layer.bias + self.MLP_model.predict_layer.bias
+                self.alpha * self.GMF_model.predict_layer.bias
+                + (1 - self.alpha) * self.MLP_model.predict_layer.bias
             )
 
-            self.predict_layer.weight.data.copy_(0.5 * predict_weight)
-            self.predict_layer.bias.data.copy_(0.5 * precit_bias)
+            self.predict_layer.weight.data.copy_(predict_weight)
+            self.predict_layer.bias.data.copy_(precit_bias)
 
     def forward(self, inputs: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         user, item = inputs
