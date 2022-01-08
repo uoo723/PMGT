@@ -3,6 +3,7 @@ Created on 2022/01/08
 @author Sangwoo Han
 """
 import os
+from collections import OrderedDict
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import joblib
@@ -156,7 +157,34 @@ def _get_dataloader(
     return train_dataloader, valid_dataloader, test_dataloader
 
 
+def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
+    ckpt_path, params = _get_ckpt_path(
+        log_dir, run_id, load_best=True, return_params=True
+    )
+    ckpt = torch.load(ckpt_path, map_location="cpu")
+    model = NCF(
+        int(params.num_user),
+        int(params.num_item),
+        int(params.factor_num),
+        int(params.num_layers),
+        float(params.dropout),
+        params.model_name,
+    )
+
+    model.load_state_dict(
+        OrderedDict([(k.replace("net.", ""), v) for k, v in ckpt["state_dict"].items()])
+    )
+
+    return model
+
+
 def _get_model(args: AttrDict) -> nn.Module:
+    if args.model_name == "NeuMF-pre":
+        GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
+        MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
+    else:
+        GMF_model, MLP_model = None
+
     model = NCF(
         args.num_user,
         args.num_item,
@@ -164,14 +192,16 @@ def _get_model(args: AttrDict) -> nn.Module:
         args.num_layers,
         args.dropout,
         args.model_name,
-        GMF_model=None,  # TODO: Load pretrained GMF model
-        MLP_model=None,  # TODO: Load pretrained MLP model
+        GMF_model=GMF_model,
+        MLP_model=MLP_model,
     )
 
     return model
 
 
-def _get_ckpt_path(log_dir: str, run_id: str, load_best: bool = False) -> str:
+def _get_ckpt_path(
+    log_dir: str, run_id: str, load_best: bool = False, return_params: bool = False
+) -> Union[str, Tuple[str, AttrDict]]:
     client = MlflowClient(log_dir)
     run = client.get_run(run_id)
     ckpt_root_dir = os.path.join(log_dir, run.info.experiment_id, run_id, "checkpoints")
@@ -182,6 +212,10 @@ def _get_ckpt_path(log_dir: str, run_id: str, load_best: bool = False) -> str:
             0
         ]
         ckpt_path = ckpt["callbacks"][key]["best_model_path"]
+
+    if return_params:
+        return ckpt_path, AttrDict(run.data.params)
+
     return ckpt_path
 
 
@@ -273,7 +307,7 @@ class TrainerModel(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: List[np.ndarray]) -> None:
         predictions = np.concatenate(outputs)
-        gt = self.args.valid_dataset.gt[:predictions.shape[0]]
+        gt = self.args.valid_dataset.gt[: predictions.shape[0]]
         mlb = self.args.valid_dataset.mlb
         # print("predictions.shape", predictions.shape)
         # print("gt.shape", gt.shape)
@@ -287,7 +321,7 @@ class TrainerModel(pl.LightningModule):
 
     def test_epoch_end(self, outputs: List[np.ndarray]) -> None:
         predictions = np.concatenate(outputs)
-        gt = self.args.test_dataset.gt[:predictions.shape[0]]
+        gt = self.args.test_dataset.gt[: predictions.shape[0]]
         mlb = self.args.test_dataset.mlb
         n10 = get_ndcg(predictions, gt, mlb, top=10)
         n20 = get_ndcg(predictions, gt, mlb, top=20)
@@ -310,6 +344,13 @@ def init_run(args: AttrDict) -> None:
 
 def check_args(args: AttrDict) -> None:
     assert type(args.valid_size) in [float, int], "valid size must be int or float"
+    if args.model_name == "NeuMF-pre":
+        assert (
+            args.gmf_run_id is not None
+        ), f"GMF_run_id must be set, when model_name = {args.model_name}"
+        assert (
+            args.mlp_run_id is not None
+        ), f"MLP_run_id must be set, when model_name = {args.model_name}"
 
 
 def init_dataloader(args: AttrDict) -> None:

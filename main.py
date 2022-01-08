@@ -100,6 +100,16 @@ def cli():
     default="MLP",
     help="NCF model name",
 )
+@click.option(
+    "--GMF-run-id",
+    type=click.STRING,
+    help="run id for GMF to load weights",
+)
+@click.option(
+    "--MLP-run-id",
+    type=click.STRING,
+    help="run id for MLP to load weights",
+)
 @click.option("--dataset-name", type=click.Choice(["VG"]), default="VG", help="dataset")
 @click.option("--valid-size", default=0.2, help="validation dataset size")
 @click.option("--data-dir", type=click.Path(), default="./data", help="data directory")
