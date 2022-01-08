@@ -29,6 +29,12 @@ def cli():
 )
 @click.option("--dropout", type=click.FLOAT, default=0.0, help="dropout rate")
 @click.option(
+    "--alpha",
+    type=click.FLOAT,
+    default=0.5,
+    help="trade-off bewteen pretrained GMF and MLP",
+)
+@click.option(
     "--train-batch-size", type=click.INT, default=256, help="train batch size"
 )
 @click.option("--test-batch-size", type=click.INT, default=256, help="test batch size")

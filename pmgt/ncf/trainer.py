@@ -196,6 +196,7 @@ def _get_model(args: AttrDict) -> nn.Module:
         args.model_name,
         GMF_model=GMF_model,
         MLP_model=MLP_model,
+        alpha=args.alpha,
     )
 
     return model
