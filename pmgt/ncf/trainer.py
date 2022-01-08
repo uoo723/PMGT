@@ -244,13 +244,17 @@ class TrainerModel(pl.LightningModule):
         "data_dir",
         "eval_ckpt_path",
         "tags",
+        "is_hptuning",
     ]
 
-    def __init__(self, loss_func: Callable, **args: Any) -> None:
+    def __init__(
+        self, loss_func: Callable, is_hptuning: bool = False, **args: Any
+    ) -> None:
         super().__init__()
         self.args = AttrDict(args)
         self.net = self.args.model
         self.loss_func = loss_func
+        self.is_hptuning = is_hptuning
         self.save_hyperparameters(ignore=self.IGNORE_HPARAMS)
 
     def forward(self, x: TInput) -> TOutput:
@@ -334,8 +338,11 @@ class TrainerModel(pl.LightningModule):
 
     def test_epoch_end(self, outputs: List[np.ndarray]) -> None:
         predictions = np.concatenate(outputs)
-        gt = self.args.test_dataset.gt[: predictions.shape[0]]
-        mlb = self.args.test_dataset.mlb
+        dataset = (
+            self.args.valid_dataset if self.is_hptuning else self.args.test_dataset
+        )
+        gt = dataset.gt[: predictions.shape[0]]
+        mlb = dataset.mlb
         n10 = get_ndcg(predictions, gt, mlb, top=10)
         n20 = get_ndcg(predictions, gt, mlb, top=20)
         r10 = get_recall(predictions, gt, mlb, top=10)
@@ -484,7 +491,9 @@ def test(
     else:
         ckpt_path = args.eval_ckpt_path
 
-    trainer_model = TrainerModel(loss_func=nn.BCEWithLogitsLoss(), **args)
+    trainer_model = TrainerModel(
+        loss_func=nn.BCEWithLogitsLoss(), is_hptuing=is_hptuning, **args
+    )
 
     trainer = trainer or pl.Trainer(
         gpus=args.num_gpus,
