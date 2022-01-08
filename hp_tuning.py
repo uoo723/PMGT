@@ -64,7 +64,7 @@ def objective(
     params.update(_get_hp_params(trial, hp_params))
     params.tags = list(params.tags) + [("trial", trial.number)]
     results = train_func(is_hptuning=True, **params)
-    return results[criterion]
+    return results[criterion] if criterion in results else 0
 
 
 @cli.command(context_settings={"show_default": True})
@@ -126,7 +126,7 @@ def hp_tuning(**args):
                 train_func=train_func,
                 criterion="test/" + train_params.early_criterion,
             ),
-            callbacks=[partial(_max_trial_callback, n_trials=args.n_trials)]
+            callbacks=[partial(_max_trial_callback, n_trials=args.n_trials)],
         )
     except KeyboardInterrupt:
         logger.info("Stop tuning.")

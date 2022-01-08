@@ -211,9 +211,7 @@ def _get_model(args: AttrDict) -> nn.Module:
     return model
 
 
-def _get_ckpt_path(
-    log_dir: str, run_id: str, load_best: bool = False
-) -> Union[str, Tuple[str, AttrDict]]:
+def _get_ckpt_path(log_dir: str, run_id: str, load_best: bool = False) -> str:
     run = _get_run(log_dir, run_id)
     ckpt_root_dir = os.path.join(log_dir, run.info.experiment_id, run_id, "checkpoints")
     ckpt_path = os.path.join(ckpt_root_dir, "last.ckpt")
@@ -492,7 +490,7 @@ def test(
         ckpt_path = args.eval_ckpt_path
 
     trainer_model = TrainerModel(
-        loss_func=nn.BCEWithLogitsLoss(), is_hptuing=is_hptuning, **args
+        loss_func=nn.BCEWithLogitsLoss(), is_hptuning=is_hptuning, **args
     )
 
     trainer = trainer or pl.Trainer(
@@ -505,12 +503,15 @@ def test(
     results = trainer.test(
         trainer_model,
         args.valid_dataloader if is_hptuning else args.test_dataloader,
-        ckpt_path=ckpt_path,
+        ckpt_path=ckpt_path or None,
         verbose=False,
-    )[0]
-    metrics = ["n10", "n20", "r10", "r20"]
+    )
 
-    msg = "\n" + "\n".join([f"{m}: {results['test/' + m]:.4f}" for m in metrics])
-    logger.info(msg)
+    if results is not None:
+        results = results[0]
+        metrics = ["n10", "n20", "r10", "r20"]
 
-    return results
+        msg = "\n" + "\n".join([f"{m}: {results['test/' + m]:.4f}" for m in metrics])
+        logger.info(msg)
+
+    return results or {}
