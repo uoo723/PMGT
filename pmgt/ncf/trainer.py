@@ -167,6 +167,7 @@ def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
         int(params.num_item),
         int(params.factor_num),
         int(params.num_layers),
+        float(getattr(params, "emb_dropout", 0.0)),
         float(params.dropout),
         params.model_name,
     )
@@ -190,6 +191,7 @@ def _get_model(args: AttrDict) -> nn.Module:
         args.num_item,
         args.factor_num,
         args.num_layers,
+        args.emb_dropout,
         args.dropout,
         args.model_name,
         GMF_model=GMF_model,

@@ -21,6 +21,12 @@ def cli():
     default=1e-2,
     help="Weight decay",
 )
+@click.option(
+    "--emb-dropout",
+    type=click.FLOAT,
+    default=0.0,
+    help="dropout rate for embedding layer",
+)
 @click.option("--dropout", type=click.FLOAT, default=0.0, help="dropout rate")
 @click.option(
     "--train-batch-size", type=click.INT, default=256, help="train batch size"

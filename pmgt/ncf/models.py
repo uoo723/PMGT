@@ -31,6 +31,7 @@ class NCF(nn.Module):
         item_num: int,
         factor_num: int = 32,
         num_layers: int = 3,
+        emb_dropout: float = 0.0,
         dropout: float = 0.0,
         model: str = "NeuMF-end",
         GMF_model: Optional[NCF] = None,
@@ -52,6 +53,8 @@ class NCF(nn.Module):
         self.embed_item_MLP = nn.Embedding(
             item_num, factor_num * (2 ** (num_layers - 1))
         )
+
+        self.emb_dropout = nn.Dropout(p=emb_dropout)
 
         MLP_modules = []
         for i in range(num_layers):
@@ -120,11 +123,13 @@ class NCF(nn.Module):
         if not self.model == "MLP":
             embed_user_GMF = self.embed_user_GMF(user)
             embed_item_GMF = self.embed_item_GMF(item)
-            output_GMF = embed_user_GMF * embed_item_GMF
+            output_GMF = self.emb_dropout(embed_user_GMF * embed_item_GMF)
         if not self.model == "GMF":
             embed_user_MLP = self.embed_user_MLP(user)
             embed_item_MLP = self.embed_item_MLP(item)
-            interaction = torch.cat((embed_user_MLP, embed_item_MLP), -1)
+            interaction = self.emb_dropout(
+                torch.cat((embed_user_MLP, embed_item_MLP), -1)
+            )
             output_MLP = self.MLP_layers(interaction)
 
         if self.model == "GMF":
