@@ -272,7 +272,7 @@ class TrainerModel(pl.LightningModule):
             )
 
     def on_train_epoch_start(self) -> None:
-        if hasattr(self.args.train_dataset, "ng_sample"):
+        if hasattr(self.args.train_dataset, "ng_sample") and self.global_step > 0:
             self.args.train_dataset.ng_sample()
 
     def training_step(self, batch: TBatch, batch_idx: int) -> torch.Tensor:
@@ -361,6 +361,8 @@ def init_dataloader(args: AttrDict) -> None:
     args.train_dataset = train_dataset
     args.valid_dataset = valid_dataset
     args.test_dataset = test_dataset
+
+    args.train_dataset.ng_sample()
 
     logger.info(f"# of train dataset: {len(train_dataset):,}")
     logger.info(f"# of users: {args.num_user:,}")
