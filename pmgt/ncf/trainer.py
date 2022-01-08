@@ -184,7 +184,7 @@ def _get_model(args: AttrDict) -> nn.Module:
         GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
         MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
     else:
-        GMF_model, MLP_model = None
+        GMF_model = MLP_model = None
 
     model = NCF(
         args.num_user,
