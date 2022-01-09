@@ -126,12 +126,26 @@ class PMGTEmbeddings(nn.Module):
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
+        self.register_buffer(
+            "postition_ids",
+            torch.arange(config.max_position_embeddings).unsqueeze(0),
+        )
+        self.register_buffer(
+            "role_ids",
+            torch.LongTensor(
+                [0] + [1] * (config.max_position_embeddings - 1)
+            ).unsqueeze(0),
+        )
+
         if config.freeze_feat_embeddings:
             for feat_emb in self.feat_embeddings:
                 feat_emb.requires_grad_(False)
 
     def forward(self, node_ids):
-        batch_size, seq_len = node_ids.size()
+        seq_len = node_ids.size(1)
+
+        position_ids = self.postition_ids[:, :seq_len]
+        role_ids = self.role_ids[:, :seq_len]
 
         feat_embeds = [
             feat_linear(feat_embeddings(node_ids))
@@ -144,14 +158,7 @@ class PMGTEmbeddings(nn.Module):
         feat_embeds = attention_scores.unsqueeze(-1) * torch.stack(feat_embeds, dim=2)
         feat_embeds = feat_embeds.sum(dim=2)
 
-        position_ids = torch.arange(
-            seq_len, dtype=torch.long, device=node_ids.device
-        ).repeat(batch_size, 1)
         position_embeds = self.position_embeddings(position_ids)
-
-        role_ids = torch.ones(seq_len, dtype=torch.long, device=node_ids.device)
-        role_ids[0] = 0
-        role_ids = role_ids.repeat(batch_size, 1)
         role_embeds = self.role_embeddings(role_ids)
 
         embeds = feat_embeds + position_embeds + role_embeds
