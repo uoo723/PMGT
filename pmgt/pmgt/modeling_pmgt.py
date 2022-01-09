@@ -8,6 +8,7 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.linalg
 import torch.utils.checkpoint
 from transformers.modeling_outputs import BaseModelOutput
 from transformers.modeling_utils import (
@@ -272,10 +273,12 @@ class PMGTSelfAttention(nn.Module):
         self.num_attention_heads = config.num_attention_heads
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
+        self.beta = config.beta
 
         self.query = nn.Linear(config.hidden_size, self.all_head_size)
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
+        self.ctx_attention = nn.Linear(config.hidden_size, self.all_head_size)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
         self.position_embedding_type = getattr(
@@ -305,13 +308,44 @@ class PMGTSelfAttention(nn.Module):
         head_mask=None,
         output_attentions=False,
     ):
+        seq_len = hidden_states.size(1)
+
         mixed_query_layer = self.query(hidden_states)
         key_layer = self.transpose_for_scores(self.key(hidden_states))
         value_layer = self.transpose_for_scores(self.value(hidden_states))
         query_layer = self.transpose_for_scores(mixed_query_layer)
+        ctx_layer = self.transpose_for_scores(self.ctx_attention(hidden_states))
+
+        ctx_norm = torch.linalg.norm(ctx_layer, dim=-1, keepdim=True)
+        ctx_norm = torch.matmul(ctx_norm, ctx_norm.transpose(-1, -2))
+
+        all_ones = torch.ones(
+            1,
+            1,
+            seq_len,
+            seq_len,
+            device=hidden_states.device,
+            dtype=hidden_states.dtype,
+        )
+        identity = torch.eye(
+            seq_len, device=hidden_states.device, dtype=hidden_states.dtype
+        ).expand(1, 1, seq_len, seq_len)
+
+        attention_scores1 = torch.matmul(ctx_layer, ctx_layer.transpose(-1, -2))
+        attention_scores1 = attention_scores1 / ctx_norm
+        attention_scores1 = all_ones - attention_scores1 + identity
+
+        if attention_mask is not None:
+            attention_scores1 = attention_scores1 + attention_mask
+
+        attention_probs1 = nn.Softmax(dim=-1)(attention_scores1)
+        attention_probs1 = self.dropout(attention_probs1)
+
+        if head_mask is not None:
+            attention_probs1 = attention_probs1 * head_mask
 
         # Take the dot product between "query" and "key" to get the raw attention scores.
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+        attention_scores2 = torch.matmul(query_layer, key_layer.transpose(-1, -2))
 
         if (
             self.position_embedding_type == "relative_key"
@@ -336,7 +370,7 @@ class PMGTSelfAttention(nn.Module):
                 relative_position_scores = torch.einsum(
                     "bhld,lrd->bhlr", query_layer, positional_embedding
                 )
-                attention_scores = attention_scores + relative_position_scores
+                attention_scores2 = attention_scores2 + relative_position_scores
             elif self.position_embedding_type == "relative_key_query":
                 relative_position_scores_query = torch.einsum(
                     "bhld,lrd->bhlr", query_layer, positional_embedding
@@ -344,36 +378,41 @@ class PMGTSelfAttention(nn.Module):
                 relative_position_scores_key = torch.einsum(
                     "bhrd,lrd->bhlr", key_layer, positional_embedding
                 )
-                attention_scores = (
-                    attention_scores
+                attention_scores2 = (
+                    attention_scores2
                     + relative_position_scores_query
                     + relative_position_scores_key
                 )
 
-        attention_scores = attention_scores / math.sqrt(self.attention_head_size)
+        attention_scores2 = attention_scores2 / math.sqrt(self.attention_head_size)
         if attention_mask is not None:
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
-            attention_scores = attention_scores + attention_mask
+            attention_scores2 = attention_scores2 + attention_mask
 
         # Normalize the attention scores to probabilities.
-        attention_probs = nn.Softmax(dim=-1)(attention_scores)
+        attention_probs2 = nn.Softmax(dim=-1)(attention_scores2)
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
-        attention_probs = self.dropout(attention_probs)
+        attention_probs2 = self.dropout(attention_probs2)
 
         # Mask heads if we want to
         if head_mask is not None:
-            attention_probs = attention_probs * head_mask
+            attention_probs2 = attention_probs2 * head_mask
 
-        context_layer = torch.matmul(attention_probs, value_layer)
+        weighted_attention_probs = (
+            self.beta * attention_probs1 + (1 - self.beta) * attention_probs2
+        )
 
+        context_layer = torch.matmul(weighted_attention_probs, value_layer)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
 
         outputs = (
-            (context_layer, attention_probs) if output_attentions else (context_layer,)
+            (context_layer, weighted_attention_probs)
+            if output_attentions
+            else (context_layer,)
         )
 
         return outputs
