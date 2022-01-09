@@ -16,13 +16,79 @@ from transformers.modeling_utils import (
     prune_linear_layer,
 )
 from transformers.models.bert.modeling_bert import (
-    BertAttention,
     BertIntermediate,
     BertOutput,
-    BertPredictionHeadTransform,
-    BertSelfAttention,
     BertSelfOutput,
 )
+
+
+class PMGTEmbeddings(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.feat_embeddings = nn.ModuleList(
+            nn.Embedding(config.node_size, feat_hidden_size)
+            for feat_hidden_size in config.feat_hidden_sizes
+        )
+        self.position_embeddings = nn.Embedding(
+            config.max_position_embeddings, config.hidden_size
+        )
+        self.role_embeddings = nn.Embedding(2, config.hidden_size)
+
+        self.feat_linear = nn.ModuleList(
+            nn.Linear(feat_hidden_size, config.hidden_size)
+            for feat_hidden_size in config.feat_hidden_sizes
+        )
+
+        num_feats = len(config.feat_hidden_sizes)
+        self.attention = nn.Sequential(
+            nn.Tanh(),
+            nn.Linear(num_feats * config.hidden_size, num_feats),
+            nn.Softmax(dim=-1),
+        )
+
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+        self.register_buffer(
+            "postition_ids",
+            torch.arange(config.max_position_embeddings).unsqueeze(0),
+        )
+        self.register_buffer(
+            "role_ids",
+            torch.LongTensor(
+                [0] + [1] * (config.max_position_embeddings - 1)
+            ).unsqueeze(0),
+        )
+
+        if config.freeze_feat_embeddings:
+            for feat_emb in self.feat_embeddings:
+                feat_emb.requires_grad_(False)
+
+    def forward(self, node_ids):
+        seq_len = node_ids.size(1)
+
+        position_ids = self.postition_ids[:, :seq_len]
+        role_ids = self.role_ids[:, :seq_len]
+
+        feat_embeds = [
+            feat_linear(feat_embeddings(node_ids))
+            for feat_embeddings, feat_linear in zip(
+                self.feat_embeddings, self.feat_linear
+            )
+        ]
+
+        attention_scores = self.attention(torch.cat(feat_embeds, dim=-1))
+        feat_embeds = attention_scores.unsqueeze(-1) * torch.stack(feat_embeds, dim=2)
+        feat_embeds = feat_embeds.sum(dim=2)
+
+        position_embeds = self.position_embeddings(position_ids)
+        role_embeds = self.role_embeddings(role_ids)
+
+        embeds = feat_embeds + position_embeds + role_embeds
+        embeds = self.LayerNorm(embeds)
+        embeds = self.dropout(embeds)
+
+        return embeds
 
 
 class PMGTEncoder(nn.Module):
@@ -97,96 +163,6 @@ class PMGTEncoder(nn.Module):
             hidden_states=all_hidden_states,
             attentions=all_self_attentions,
         )
-
-
-class PMGTEmbeddings(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.feat_embeddings = nn.ModuleList(
-            nn.Embedding(config.node_size, feat_hidden_size)
-            for feat_hidden_size in config.feat_hidden_sizes
-        )
-        self.position_embeddings = nn.Embedding(
-            config.max_position_embeddings, config.hidden_size
-        )
-        self.role_embeddings = nn.Embedding(2, config.hidden_size)
-
-        self.feat_linear = nn.ModuleList(
-            nn.Linear(feat_hidden_size, config.hidden_size)
-            for feat_hidden_size in config.feat_hidden_sizes
-        )
-
-        num_feats = len(config.feat_hidden_sizes)
-        self.attention = nn.Sequential(
-            nn.Tanh(),
-            nn.Linear(num_feats * config.hidden_size, num_feats),
-            nn.Softmax(dim=-1),
-        )
-
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-        self.register_buffer(
-            "postition_ids",
-            torch.arange(config.max_position_embeddings).unsqueeze(0),
-        )
-        self.register_buffer(
-            "role_ids",
-            torch.LongTensor(
-                [0] + [1] * (config.max_position_embeddings - 1)
-            ).unsqueeze(0),
-        )
-
-        if config.freeze_feat_embeddings:
-            for feat_emb in self.feat_embeddings:
-                feat_emb.requires_grad_(False)
-
-    def forward(self, node_ids):
-        seq_len = node_ids.size(1)
-
-        position_ids = self.postition_ids[:, :seq_len]
-        role_ids = self.role_ids[:, :seq_len]
-
-        feat_embeds = [
-            feat_linear(feat_embeddings(node_ids))
-            for feat_embeddings, feat_linear in zip(
-                self.feat_embeddings, self.feat_linear
-            )
-        ]
-
-        attention_scores = self.attention(torch.cat(feat_embeds, dim=-1))
-        feat_embeds = attention_scores.unsqueeze(-1) * torch.stack(feat_embeds, dim=2)
-        feat_embeds = feat_embeds.sum(dim=2)
-
-        position_embeds = self.position_embeddings(position_ids)
-        role_embeds = self.role_embeddings(role_ids)
-
-        embeds = feat_embeds + position_embeds + role_embeds
-        embeds = self.LayerNorm(embeds)
-        embeds = self.dropout(embeds)
-
-        return embeds
-
-
-class NodeConstructOutputLayer(nn.Module):
-    pass
-    # def __init__(self, config):
-    #     super().__init__()
-    #     self.transform = BertPredictionHeadTransform(config)
-
-    #     # The output weights are the same as the input embeddings, but there is
-    #     # an output-only bias for each token.
-    #     self.decoder = nn.Linear(config.hidden_size, config.x_size, bias=False)
-
-    #     self.bias = nn.Parameter(torch.zeros(config.x_size))
-
-    #     # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
-    #     self.decoder.bias = self.bias
-
-    # def forward(self, hidden_states):
-    #     hidden_states = self.transform(hidden_states)
-    #     hidden_states = self.decoder(hidden_states) + self.bias
-    #     return hidden_states
 
 
 class PMGTLayer(nn.Module):
@@ -401,3 +377,24 @@ class PMGTSelfAttention(nn.Module):
         )
 
         return outputs
+
+
+class NodeConstructOutputLayer(nn.Module):
+    pass
+    # def __init__(self, config):
+    #     super().__init__()
+    #     self.transform = BertPredictionHeadTransform(config)
+
+    #     # The output weights are the same as the input embeddings, but there is
+    #     # an output-only bias for each token.
+    #     self.decoder = nn.Linear(config.hidden_size, config.x_size, bias=False)
+
+    #     self.bias = nn.Parameter(torch.zeros(config.x_size))
+
+    #     # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
+    #     self.decoder.bias = self.bias
+
+    # def forward(self, hidden_states):
+    #     hidden_states = self.transform(hidden_states)
+    #     hidden_states = self.decoder(hidden_states) + self.bias
+    #     return hidden_states
