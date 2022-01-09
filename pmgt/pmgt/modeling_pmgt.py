@@ -10,7 +10,7 @@ import torch
 import torch.linalg
 import torch.nn as nn
 import torch.utils.checkpoint
-from transformers.modeling_outputs import BaseModelOutput
+from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling
 from transformers.modeling_utils import (
     PreTrainedModel,
     apply_chunking_to_forward,
@@ -20,6 +20,7 @@ from transformers.modeling_utils import (
 from transformers.models.bert.modeling_bert import (
     BertIntermediate,
     BertOutput,
+    BertPooler,
     BertSelfOutput,
 )
 
@@ -58,64 +59,98 @@ class PMGTPretrainedModel(PreTrainedModel):
 
 
 class PMGTModel(PMGTPretrainedModel):
-    pass
-    # def __init__(self, config, add_pooling_layer=True):
-    #     super().__init__(config)
-    #     self.config = config
+    def __init__(self, config, add_pooling_layer=False):
+        super().__init__(config)
+        self.config = config
 
-    #     self.embeddings = PMGTEmbeddings(config)
-    #     self.encoder = PMGTEncoder(config)
-    #     self.pooler = BertPooler(config) if add_pooling_layer else None
+        self.embeddings = PMGTEmbeddings(config)
+        self.encoder = PMGTEncoder(config)
+        self.pooler = BertPooler(config) if add_pooling_layer else None
 
-    #     self.init_weights()
+        self.init_weights()
 
-    # def get_input_embeddings(self):
-    #     return self.embeddings.raw_feature_embeddings
+    def _prune_heads(self, heads_to_prune):
+        for layer, heads in heads_to_prune.items():
+            self.encoder.layer[layer].attention.prune_heads(heads)
 
-    # def set_input_embeddings(self, value):
-    #     self.embeddings.raw_feature_embeddings = value
+    def forward(
+        self,
+        *input_feat_embeds,
+        attention_mask=None,
+        head_mask=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
+    ):
+        first_feat_embeds = input_feat_embeds[0]
+        assert all(
+            first_feat_embeds.size()[:-1] == feat_embeds.size()[:-1]
+            for feat_embeds in input_feat_embeds[1:]
+        ), "All features are same dim except last one"
 
-    # def _prune_heads(self, heads_to_prune):
-    #     for layer, heads in heads_to_prune.items():
-    #         self.encoder.layer[layer].attention.prune_heads(heads)
+        input_shape = first_feat_embeds.size()[:-1]
+        batch_size, seq_len = input_shape
+        device = first_feat_embeds.device
 
-    # def forward(
-    #     self,
-    #     raw_features,
-    #     wl_role_ids,
-    #     init_pos_ids,
-    #     hop_dis_ids,
-    #     head_mask=None,
-    #     residual_h=None,
-    # ):
-    #     if head_mask is None:
-    #         head_mask = [None] * self.config.num_hidden_layers
+        output_attentions = (
+            output_attentions
+            if output_attentions is not None
+            else self.config.output_attentions
+        )
+        output_hidden_states = (
+            output_hidden_states
+            if output_hidden_states is not None
+            else self.config.output_hidden_states
+        )
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
 
-    #     embedding_output = self.embeddings(
-    #         raw_features=raw_features,
-    #         wl_role_ids=wl_role_ids,
-    #         init_pos_ids=init_pos_ids,
-    #         hop_dis_ids=hop_dis_ids,
-    #     )
-    #     encoder_outputs = self.encoder(
-    #         embedding_output, head_mask=head_mask, residual_h=residual_h
-    #     )
-    #     sequence_output = encoder_outputs[0]
-    #     pooled_output = self.pooler(sequence_output)
-    #     outputs = (
-    #         sequence_output,
-    #         pooled_output,
-    #     ) + encoder_outputs[1:]
-    #     return outputs
+        if attention_mask is None:
+            attention_mask = torch.ones(batch_size, seq_len, device=device)
+
+        # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
+        # ourselves in which case we just need to make it broadcastable to all heads.
+        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
+            attention_mask, input_shape, device
+        )
+
+        # Prepare head mask if needed
+        # 1.0 in head_mask indicate we keep the head
+        # attention_probs has shape bsz x n_heads x N x N
+        # input head_mask has shape [num_heads] or [num_hidden_layers x num_heads]
+        # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
+        head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
+
+        embedding_output = self.embeddings(*input_feat_embeds)
+
+        encoder_outputs = self.encoder(
+            embedding_output,
+            attention_mask=extended_attention_mask,
+            head_mask=head_mask,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+        sequence_output = encoder_outputs[0]
+        pooled_output = (
+            self.pooler(sequence_output) if self.pooler is not None else None
+        )
+
+        if not return_dict:
+            return (sequence_output, pooled_output) + encoder_outputs[1:]
+
+        return BaseModelOutputWithPooling(
+            last_hidden_state=sequence_output,
+            pooler_output=pooled_output,
+            hidden_states=encoder_outputs.hidden_states,
+            attentions=encoder_outputs.attentions,
+        )
 
 
 class PMGTEmbeddings(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.feat_embeddings = nn.ModuleList(
-            nn.Embedding(config.node_size, feat_hidden_size)
-            for feat_hidden_size in config.feat_hidden_sizes
-        )
         self.position_embeddings = nn.Embedding(
             config.max_position_embeddings, config.hidden_size
         )
@@ -147,23 +182,16 @@ class PMGTEmbeddings(nn.Module):
             ).unsqueeze(0),
         )
 
-        if config.freeze_feat_embeddings:
-            for feat_emb in self.feat_embeddings:
-                feat_emb.requires_grad_(False)
-
-    def forward(self, node_ids):
-        seq_len = node_ids.size(1)
+    def forward(self, *input_feat_embeds):
+        seq_len = input_feat_embeds[0].size(1)
 
         position_ids = self.postition_ids[:, :seq_len]
         role_ids = self.role_ids[:, :seq_len]
 
         feat_embeds = [
-            feat_linear(feat_embeddings(node_ids))
-            for feat_embeddings, feat_linear in zip(
-                self.feat_embeddings, self.feat_linear
-            )
+            feat_linear(embeds)
+            for embeds, feat_linear in zip(input_feat_embeds, self.feat_linear)
         ]
-
         attention_scores = self.attention(torch.cat(feat_embeds, dim=-1))
         feat_embeds = attention_scores.unsqueeze(-1) * torch.stack(feat_embeds, dim=2)
         feat_embeds = feat_embeds.sum(dim=2)
@@ -328,14 +356,12 @@ class PMGTAttention(nn.Module):
         hidden_states,
         attention_mask=None,
         head_mask=None,
-        past_key_value=None,
         output_attentions=False,
     ):
         self_outputs = self.self(
             hidden_states,
             attention_mask,
             head_mask,
-            past_key_value=past_key_value,
             output_attentions=output_attentions,
         )
         attention_output = self.output(self_outputs[0], hidden_states)

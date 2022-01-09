@@ -12,10 +12,8 @@ class PMGTConfig(PretrainedConfig):
 
     def __init__(
         self,
-        node_size=7252,
         hidden_size=128,
         feat_hidden_sizes=[1536, 768],
-        freeze_feat_embeddings=True,
         num_hidden_layers=5,
         num_attention_heads=1,
         intermediate_size=128,
@@ -29,10 +27,8 @@ class PMGTConfig(PretrainedConfig):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.node_size = node_size
         self.hidden_size = hidden_size
         self.feat_hidden_sizes = feat_hidden_sizes
-        self.freeze_feat_embeddings = freeze_feat_embeddings
         self.num_hidden_layers = num_hidden_layers
         self.num_attention_heads = num_attention_heads
         self.hidden_act = hidden_act

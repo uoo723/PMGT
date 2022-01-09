@@ -83,6 +83,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.09]  
+ - PMGT 모델 구현 ([pmgt/pmgt/modeling_pmgt.py](pmgt/pmgt/modeling_pmgt.py))  
+
 [2022.01.08]  
  - 하이퍼 파라미터 search for NCF (VG 데이터셋)  
 
