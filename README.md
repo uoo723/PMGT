@@ -4,49 +4,54 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Experiments
 
+    n10: 0.0992
+    n20: 0.1254
+    r10: 0.1531
+    r20: 0.2340
+
 <table>
   <tr>
     <td>Datasets</td>
     <td>Metrics</td>
-    <td>NCF (GMF)</td>
-    <td>NCF (MLP)</td>
-    <td>NCF (NeuMF-end)</td>
-    <td>NCF (NeuMF-pre)</td>
-    <td>NCF (PMGT)</td>
+    <td>GMF</td>
+    <td>MLP</td>
+    <td>NeuMF-end</td>
+    <td>NeuMF-pre</td>
+    <td>NeuMF-PMGT</td>
   </tr>
   <tr>
     <td rowspan="5">VG</td>
   </tr>
   <tr>
-    <td>REC-R@10</td>
-    <td>0.0720</td>
-    <td>0.1390</td>
-    <td>0.1451</td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>REC-N@10</td>
-    <td>0.0460</td>
-    <td>0.0869</td>
-    <td>0.0893</td>
-    <td></td>
+    <td>N@10</td>
+    <td>0.0532</td>
+    <td>0.0989</td>
+    <td>0.0987</td>
+    <td>0.0992</td>
     <td></td>
   </tr>
   <tr>
-    <td>REC-R@20</td>
-    <td>0.1107</td>
-    <td>0.2196</td>
-    <td>0.2195</td>
-    <td></td>
+    <td>N@20</td>
+    <td>0.0684</td>
+    <td>0.1256</td>
+    <td>0.1251</td>
+    <td>0.1254</td>
     <td></td>
   </tr>
   <tr>
-    <td>REC-N@20</td>
-    <td>0.0583</td>
-    <td>0.1130</td>
-    <td>0.1138</td>
+    <td>R@10</td>
+    <td>0.0820</td>
+    <td>0.1523</td>
+    <td>0.1524</td>
+    <td>0.1531</td>
     <td></td>
+  </tr>
+  <tr>
+    <td>R@20</td>
+    <td>0.1291</td>
+    <td>0.2277</td>
+    <td>0.2332</td>
+    <td>0.2340</td>
     <td></td>
   </tr>
 </table>
@@ -82,6 +87,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 </table>
 
 ## Log
+
+[2022.01.08]  
+ - 하이퍼 파라미터 search for NCF (VG 데이터셋)  
 
 [2022.01.07]  
  - NCF Training 구현  
