@@ -163,7 +163,12 @@ def _get_run(log_dir: str, run_id: str) -> Run:
     return run
 
 
-def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
+def _load_pretrained_model(
+    log_dir: str,
+    run_id: str,
+    GMF_model: Optional[NCF] = None,
+    MLP_model: Optional[NCF] = None,
+) -> NCF:
     ckpt_path = _get_ckpt_path(log_dir, run_id, load_best=True)
     params = AttrDict(_get_run(log_dir, run_id).data.params)
 
@@ -176,6 +181,8 @@ def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
         float(getattr(params, "emb_dropout", 0.0)),
         float(params.dropout),
         params.model_name,
+        GMF_model=GMF_model,
+        MLP_model=MLP_model,
     )
 
     model.load_state_dict(
@@ -186,15 +193,15 @@ def _load_pretrained_model(log_dir: str, run_id: str) -> NCF:
 
 
 def _get_model(args: AttrDict) -> nn.Module:
-    if args.run_id is not None:
-        model = _load_pretrained_model(args.log_dir, args.run_id)
+    if args.model_name == "NeuMF-pre":
+        GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
+        MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
     else:
-        if args.model_name == "NeuMF-pre":
-            GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
-            MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
-        else:
-            GMF_model = MLP_model = None
+        GMF_model = MLP_model = None
 
+    if args.run_id is not None:
+        model = _load_pretrained_model(args.log_dir, args.run_id, GMF_model, MLP_model)
+    else:
         model = NCF(
             args.num_user,
             args.num_item,
