@@ -4,10 +4,12 @@ Created on 2022/01/08
 @ref https://github.com/jwzhanggy/Graph-Bert/blob/master/code/MethodGraphBert.py
 """
 
-from transformers.modeling_utils import PreTrainedModel
-from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertPooler
-from .modules import PMGTEmbeddings, PMGTEncoder, PMGTConfig
 import torch.nn as nn
+from transformers.modeling_utils import PreTrainedModel
+from transformers.models.bert.modeling_bert import BertPooler, BertPreTrainedModel
+
+from .configuration_pmgt import PMGTConfig
+from .modeling_pmgt import PMGTEmbeddings, PMGTEncoder
 
 
 class PMGTPretrainedModel(PreTrainedModel):
