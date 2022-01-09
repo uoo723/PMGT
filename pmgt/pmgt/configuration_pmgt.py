@@ -25,6 +25,7 @@ class PMGTConfig(PretrainedConfig):
         max_position_embeddings=100,
         initializer_range=0.02,
         layer_norm_eps=1e-12,
+        beta=0.5,  # diversity promoting attention weight
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -41,3 +42,4 @@ class PMGTConfig(PretrainedConfig):
         self.max_position_embeddings = max_position_embeddings
         self.initializer_range = initializer_range
         self.layer_norm_eps = layer_norm_eps
+        self.beta = beta
