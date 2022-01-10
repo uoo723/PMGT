@@ -83,6 +83,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.10]  
+ - MCNSampling 구현 ([pmgt/pmgt/datasets.py](pmgt/pmgt/datasets.py))  
+
 [2022.01.09]  
  - PMGT 모델 구현 ([pmgt/pmgt/modeling_pmgt.py](pmgt/pmgt/modeling_pmgt.py))  
 
