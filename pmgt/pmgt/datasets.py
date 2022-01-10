@@ -55,7 +55,7 @@ class PMGTDataset(torch.utils.data.Dataset):
                     np.asarray([v["weight"] for v in self.graph[node].values()])
                 )
                 node_list = np.random.choice(
-                    self.graph[node], size=sample_size, p=weights
+                    self.graph[node], size=sample_size, replace=True, p=weights
                 ).tolist()
                 sampled_nodes[k].extend(node_list)
 
