@@ -7,7 +7,7 @@ import json
 import os
 from functools import partial
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Dict
 
 import click
 import optuna
@@ -19,7 +19,7 @@ from ruamel.yaml import YAML
 
 from main import cli
 from pmgt.utils import log_elapsed_time
-from train import _train_dcn, _train_ncf
+from train import train_model
 
 
 def _load_train_params(config_filepath: str) -> AttrDict:
@@ -57,13 +57,13 @@ def objective(
     trial: Trial,
     train_params: Dict,
     hp_params: Dict,
-    train_func: Callable,
+    train_name: str,
     criterion: str,
 ) -> float:
     params = copy.deepcopy(train_params)
     params.update(_get_hp_params(trial, hp_params))
     params.tags = list(params.tags) + [("trial", trial.number)]
-    results = train_func(is_hptuning=True, **params)
+    results = train_model(train_name, is_hptuning=True, **params)
     return results[criterion] if criterion in results else 0
 
 
@@ -89,10 +89,10 @@ def objective(
     help="Set storage path to save study",
 )
 @click.option(
-    "--train-func",
-    type=click.Choice(["train_ncf", "train_dcn"]),
-    default="train_ncf",
-    help="Set train function",
+    "--train-name",
+    type=click.Choice(["ncf", "dcn", 'pmgt']),
+    default="ncf",
+    help="Set train name",
 )
 @log_elapsed_time
 def hp_tuning(**args):
@@ -102,7 +102,6 @@ def hp_tuning(**args):
     yaml = YAML(typ="safe")
     hp_params = AttrDict(yaml.load(Path(args.hp_config_path)))
     train_params = _load_train_params(args.train_config_path)
-    train_func = _train_ncf if args.train_func == "train_ncf" else _train_dcn
     storage_path = os.path.abspath(args.storage_path)
 
     os.makedirs(os.path.dirname(storage_path), exist_ok=True)
@@ -123,7 +122,7 @@ def hp_tuning(**args):
                 objective,
                 train_params=train_params,
                 hp_params=hp_params,
-                train_func=train_func,
+                train_name=args.train_name,
                 criterion="test/" + train_params.early_criterion,
             ),
             callbacks=[partial(_max_trial_callback, n_trials=args.n_trials)],

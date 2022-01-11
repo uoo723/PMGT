@@ -10,21 +10,18 @@ import joblib
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
-import pytorch_lightning.loggers as pl_loggers
 import torch
 import torch.nn as nn
 from attrdict import AttrDict
 from logzero import logger
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from .. import base_trainer
-from ..callbacks import MLFlowExceptionCallback
-from ..metrics import get_ndcg, get_recall
-from ..ncf.datasets import NCFDataset
-from ..ncf.models import NCF
 from ..base_trainer import BaseTrainerModel, get_ckpt_path, get_run
+from ..metrics import get_ndcg, get_recall
+from .datasets import NCFDataset
+from .models import NCF
 
 TInput = Union[torch.Tensor, Dict[str, torch.Tensor], Tuple[torch.Tensor]]
 TOutput = torch.Tensor
@@ -70,6 +67,8 @@ def _get_dataset(args: AttrDict) -> Tuple[NCFDataset, NCFDataset, NCFDataset]:
         num_ng=args.max_sample_items,
         is_training=False,
     )
+
+    train_dataset.ng_sample()
 
     return train_dataset, valid_dataset, test_dataset
 
@@ -157,12 +156,16 @@ def _get_model(args: AttrDict) -> nn.Module:
     return model
 
 
-class TrainerModel(BaseTrainerModel):
+class NCFTrainerModel(BaseTrainerModel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loss_func = nn.BCEWithLogitsLoss()
+
     def forward(self, x: TInput) -> TOutput:
         return self.net(x)
 
     def on_train_epoch_start(self) -> None:
-        if hasattr(self.args.train_dataset, "ng_sample") and self.global_step > 0:
+        if self.global_step > 0:
             self.args.train_dataset.ng_sample()
 
     def training_step(self, batch: TBatch, batch_idx: int) -> torch.Tensor:
@@ -231,7 +234,12 @@ def init_run(*args, **kwargs):
 
 
 def check_args(args: AttrDict) -> None:
-    assert type(args.valid_size) in [float, int], "valid size must be int or float"
+    early_criterion = ["loss", "n20", "r20"]
+    model_name = ["MLP", "GMF", "NeuMF-end", "NeuMF-pre"]
+    dataset_name = ["VG"]
+
+    base_trainer.check_args(args, early_criterion, model_name, dataset_name)
+
     if args.model_name == "NeuMF-pre":
         assert (
             args.gmf_run_id is not None
@@ -242,146 +250,28 @@ def check_args(args: AttrDict) -> None:
 
 
 def init_dataloader(args: AttrDict) -> None:
-    logger.info(f"Dataset: {args.dataset_name}")
-    train_dataset, valid_dataset, test_dataset = _get_dataset(args)
-    args.train_dataset = train_dataset
-    args.valid_dataset = valid_dataset
-    args.test_dataset = test_dataset
+    base_trainer.init_dataloader(args, _get_dataset, _get_dataloader)
 
-    args.train_dataset.ng_sample()
-
-    logger.info(f"# of train dataset: {len(train_dataset):,}")
+    logger.info(f"# of train dataset: {len(args.train_dataset):,}")
     logger.info(f"# of users: {args.num_user:,}")
     logger.info(f"# of items: {args.num_item:,}")
 
-    logger.info(f"Prepare Dataloader")
-
-    train_dataloader, valid_dataloader, test_dataloader = _get_dataloader(
-        args,
-        train_dataset,
-        valid_dataset,
-        test_dataset,
-    )
-
-    args.train_dataloader = train_dataloader
-    args.valid_dataloader = valid_dataloader
-    args.test_dataloader = test_dataloader
-
 
 def init_model(args: AttrDict) -> None:
-    logger.info(f"Model: NCF ({args.model_name})")
-
-    model = _get_model(args)
-
-    if args.num_gpus > 1 and not args.no_cuda:
-        logger.info(f"Multi-GPU mode: {args.num_gpus} GPUs")
-    elif not args.no_cuda:
-        logger.info("single-GPU mode")
-    else:
-        logger.info("CPU mode")
-
-    if args.num_gpus >= 1 and not args.no_cuda:
-        gpu_info = [
-            f"{i}: {torch.cuda.get_device_name(i)}" for i in range(args.num_gpus)
-        ]
-        logger.info("GPU info - " + " ".join(gpu_info))
-
-    args.model = model
+    base_trainer.init_model(args, _get_model)
 
 
 def train(args: AttrDict) -> Tuple[float, pl.Trainer]:
-    if args.run_name is None:
-        run_name = f"{args.model_cnf['name']}_{args.data_cnf['name']}"
-    else:
-        run_name = args.run_name
-
-    mlf_logger = pl_loggers.MLFlowLogger(
-        experiment_name=args.experiment_name, run_name=run_name, save_dir=args.log_dir
-    )
-
-    monitor = (
-        "loss/val" if args.early_criterion == "loss" else f"val/{args.early_criterion}"
-    )
-    mode = "min" if args.early_criterion == "loss" else "max"
-
-    early_stopping_callback = EarlyStopping(
-        monitor=monitor, patience=args.early, mode=mode
-    )
-    checkpoint_callback = ModelCheckpoint(
-        monitor=monitor,
-        filename=f"epoch={{epoch:02d}}-{monitor.split('/')[-1]}={{{monitor}:.4f}}",
-        mode=mode,
-        save_top_k=3,
-        auto_insert_metric_name=False,
-        save_last=True,
-    )
-    mlflow_exception_callback = MLFlowExceptionCallback()
-
-    trainer_model = TrainerModel(loss_func=nn.BCEWithLogitsLoss(), **args)
-    trainer = pl.Trainer(
-        default_root_dir=args.log_dir,
-        gpus=args.num_gpus,
-        precision=16 if args.mp_enabled else 32,
-        max_epochs=args.num_epochs,
-        gradient_clip_val=args.gradient_max_norm,
-        accumulate_grad_batches=args.accumulation_step,
-        callbacks=[
-            early_stopping_callback,
-            checkpoint_callback,
-            mlflow_exception_callback,
-        ],
-        logger=mlf_logger,
-    )
-
-    ckpt_path = (
-        get_ckpt_path(args.log_dir, args.run_id, args.load_best)
-        if args.run_id
-        else None
-    )
-    trainer.fit(
-        trainer_model, args.train_dataloader, args.valid_dataloader, ckpt_path=ckpt_path
-    )
-
-    args.eval_ckpt_path = checkpoint_callback.best_model_path
-
-    best_score = checkpoint_callback.best_model_score
-    best_score = best_score.item() if best_score else 0
-
-    return best_score, trainer
+    return base_trainer.train(args, NCFTrainerModel)
 
 
 def test(
     args: AttrDict, trainer: Optional[pl.Trainer] = None, is_hptuning: bool = False
 ) -> Dict[str, float]:
-    if args.mode == "eval":
-        assert args.run_id is not None, "run_id must be provided"
-        ckpt_path = get_ckpt_path(args.log_dir, args.run_id, True)
-    else:
-        ckpt_path = args.eval_ckpt_path
-
-    trainer_model = TrainerModel(
-        loss_func=nn.BCEWithLogitsLoss(), is_hptuning=is_hptuning, **args
+    return base_trainer.test(
+        args,
+        NCFTrainerModel,
+        metrics=["n10", "n20", "r10", "r20"],
+        trainer=trainer,
+        is_hptuning=is_hptuning,
     )
-
-    trainer = trainer or pl.Trainer(
-        gpus=args.num_gpus,
-        precision=16 if args.mp_enabled else 32,
-        enable_model_summary=False,
-        logger=False,
-    )
-
-    results = trainer.test(
-        trainer_model,
-        args.valid_dataloader if is_hptuning else args.test_dataloader,
-        ckpt_path=ckpt_path or None,
-        verbose=False,
-    )
-
-    if results is not None:
-        results = results[0]
-        metrics = ["n10", "n20", "r10", "r20"]
-
-        msg = "\n" + "\n".join([f"{m}: {results['test/' + m]:.4f}" for m in metrics])
-        logger.info(msg)
-
-    return results or {}

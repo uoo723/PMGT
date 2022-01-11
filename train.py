@@ -11,15 +11,74 @@ from logzero import logger
 from main import cli
 from pmgt.utils import log_elapsed_time, save_args
 
+# fmt: off
+
+_common_options = [
+    ########################################### Train Options #############################################
+    click.option("--seed", type=click.INT, default=0, help="Seed for reproducibility"),
+    click.option("--run-id", type=click.STRING, help="MLFlow Run ID for resume training"),
+    click.option("--model-name", type=click.STRING, required=True, help="model name"),
+    click.option("--dataset-name", type=click.STRING, required=True, help="dataset name"),
+    click.option("--valid-size", default=0.2, help="validation dataset size"),
+    click.option("--num-epochs", type=click.INT, default=20, help="training epochs"),
+    click.option("--lr", type=click.FLOAT, default=1e-3, help="learning rate"),
+    click.option("--decay", type=click.FLOAT, default=1e-2, help="Weight decay"),
+    click.option("--no-cuda", is_flag=True, default=False, help="Disable cuda"),
+    click.option("--mp-enabled", is_flag=True, default=False, help="Enable Mixed Precision"),
+    click.option("--early", type=click.INT, default=5, help="Early stopping epoch"),
+    click.option("--early-criterion", type=click.STRING, default="loss", help="Early stopping criterion"),
+    click.option("--num-workers", type=click.INT, default=8, help="Number of workers for dataloader"),
+    click.option("--train-batch-size", type=click.INT, default=256, help="train batch size"),
+    click.option("--test-batch-size", type=click.INT, default=256, help="test batch size"),
+    click.option("--gradient-max-norm", type=click.FLOAT, help="max norm for gradient clipping"),
+    click.option("--accumulation-step", type=click.INT, default=1, help="accumlation step for small batch size"),
+    click.option("--scheduler-warmup", type=click.FloatRange(0, 1), help="Ratio of warmup among total training steps"),
+    click.option(
+        "--scheduler-type",
+        type=click.Choice(
+            [
+                "linear",
+                "cosine",
+                "cosine_with_restarts",
+                "polynomial",
+                "constant",
+                "constant_with_warmup",
+            ]
+        ),
+        help="Set type of scheduler",
+    ),
+    click.option(
+        "--mode",
+        type=click.Choice(["train", "eval"]),
+        default="train",
+        help="train: train and eval are executed. eval: eval only",
+    ),
+    ######################################################################################################
+
+    ########################################### Log Options ##############################################
+    click.option("--experiment-name", type=click.STRING, default="baseline", help="experiment name"),
+    click.option("--run-name", type=click.STRING, help="Set Run Name for MLFLow"),
+    click.option("--tags", type=(str, str), multiple=True, help="set mlflow run tags"),
+    click.option("--data-dir", type=click.Path(), default="./data", help="data directory"),
+    click.option("--log-dir", type=click.Path(), default="./logs", help="log directory"),
+    click.option("--run-script", type=click.Path(exists=True), help="Run script file path to log"),
+    ######################################################################################################
+]
+
+# fmt: on
+
+
+def add_options(options):
+    def _add_options(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+
+    return _add_options
+
 
 @cli.command(context_settings={"show_default": True})
-@click.option("--lr", type=click.FLOAT, default=1e-3, help="learning rate")
-@click.option(
-    "--decay",
-    type=click.FLOAT,
-    default=1e-2,
-    help="Weight decay",
-)
+@add_options(_common_options)
 @click.option(
     "--emb-dropout",
     type=click.FLOAT,
@@ -32,19 +91,6 @@ from pmgt.utils import log_elapsed_time, save_args
     type=click.FLOAT,
     default=0.5,
     help="trade-off bewteen pretrained GMF and MLP",
-)
-@click.option(
-    "--train-batch-size", type=click.INT, default=256, help="train batch size"
-)
-@click.option("--test-batch-size", type=click.INT, default=256, help="test batch size")
-@click.option(
-    "--num-workers", type=click.INT, default=8, help="Number of workers for dataloader"
-)
-@click.option("--num-epochs", type=click.INT, default=20, help="training epochs")
-@click.option(
-    "--gradient-max-norm",
-    type=click.FLOAT,
-    help="max norm for gradient clipping",
 )
 @click.option(
     "--factor-num",
@@ -63,55 +109,6 @@ from pmgt.utils import log_elapsed_time, save_args
     help="Maximum # of items/user for testing",
 )
 @click.option(
-    "--early",
-    type=click.INT,
-    default=5,
-    help="Early stopping epoch",
-)
-@click.option(
-    "--early-criterion",
-    type=click.Choice(["loss", "n20", "r20"]),
-    default="n20",
-    help="Early stopping criterion",
-)
-@click.option(
-    "--scheduler-type",
-    type=click.Choice(
-        [
-            "linear",
-            "cosine",
-            "cosine_with_restarts",
-            "polynomial",
-            "constant",
-            "constant_with_warmup",
-        ]
-    ),
-    help="Set type of scheduler",
-)
-@click.option(
-    "--scheduler-warmup",
-    type=click.FloatRange(0, 1),
-    help="Ratio of warmup among total training steps",
-)
-@click.option(
-    "--accumulation-step",
-    type=click.INT,
-    default=1,
-    help="accumlation step for small batch size",
-)
-@click.option(
-    "--mode",
-    type=click.Choice(["train", "eval"]),
-    default="train",
-    help="train: train and eval are executed. eval: eval only",
-)
-@click.option(
-    "--model-name",
-    type=click.Choice(["MLP", "GMF", "NeuMF-end", "NeuMF-pre"]),
-    default="MLP",
-    help="NCF model name",
-)
-@click.option(
     "--GMF-run-id",
     type=click.STRING,
     help="run id for GMF to load weights",
@@ -121,24 +118,6 @@ from pmgt.utils import log_elapsed_time, save_args
     type=click.STRING,
     help="run id for MLP to load weights",
 )
-@click.option("--dataset-name", type=click.Choice(["VG"]), default="VG", help="dataset")
-@click.option("--valid-size", default=0.2, help="validation dataset size")
-@click.option("--data-dir", type=click.Path(), default="./data", help="data directory")
-@click.option("--log-dir", type=click.Path(), default="./logs", help="log directory")
-@click.option('--tags', type=(str, str), multiple=True, help='set mlflow run tags')
-@click.option(
-    "--experiment-name", type=click.STRING, default="NCF", help="experiment name"
-)
-@click.option(
-    "--run-script", type=click.Path(exists=True), help="Run script file path to log"
-)
-@click.option("--seed", type=click.INT, default=0, help="Seed for reproducibility")
-@click.option("--run-name", type=click.STRING, help="Set Run Name for MLFLow")
-@click.option("--run-id", type=click.STRING, help="MLFlow Run ID for resume training")
-@click.option("--no-cuda", is_flag=True, default=False, help="Disable cuda")
-@click.option(
-    "--mp-enabled", is_flag=True, default=False, help="Enable Mixed Precision"
-)
 @click.pass_context
 @log_elapsed_time
 def train_ncf(ctx: click.core.Context, **args):
@@ -146,7 +125,7 @@ def train_ncf(ctx: click.core.Context, **args):
     if ctx.obj["save_args"] is not None:
         save_args(args, ctx.obj["save_args"])
         return
-    _train_ncf(**args)
+    train_model("ncf", **args)
 
 
 @cli.command(context_settings={"show_default": True})
@@ -158,19 +137,35 @@ def train_dcn(ctx: click.core.Context, **args):
     if ctx.obj["save_args"] is not None:
         save_args(args, ctx.obj["save_args"])
         return
-    _train_dcn(**args)
+    train_dcn("dcn", **args)
 
 
-def _train_ncf(is_hptuning=False, **args) -> Dict[str, float]:
-    import pmgt.ncf.trainer as trainer
+@cli.command(context_settings={"show_default": True})
+@click.pass_context
+@log_elapsed_time
+def train_pmgt(ctx: click.core.Context, **args):
+    """Train for PMGT"""
+    if ctx.obj["save_args"] is not None:
+        save_args(args, ctx.obj["save_args"])
+        return
+    train_model("pmgt", **args)
+
+
+def train_model(train_name, is_hptuning=False, **args) -> Dict[str, float]:
+    assert train_name in ["ncf", "pmgt"]
+
+    if train_name == "ncf":
+        import pmgt.ncf.trainer as trainer
+    elif train_name == "pmgt":
+        import pmgt.pmgt.trainer as trainer
 
     args = AttrDict(args)
 
     if args.mode == "eval":
         logger.info("Eval mode")
 
-    trainer.init_run(args)
     trainer.check_args(args)
+    trainer.init_run(args)
     trainer.init_dataloader(args)
     trainer.init_model(args)
 
@@ -185,7 +180,3 @@ def _train_ncf(is_hptuning=False, **args) -> Dict[str, float]:
             pl_logger = pl_trainer.logger
             pl_logger.experiment.set_terminated(pl_logger.run_id, status="FAILED")
         raise e
-
-
-def _train_dcn(is_hptuning=False, **args) -> Dict[str, float]:
-    pass
