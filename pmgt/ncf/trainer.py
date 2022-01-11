@@ -4,7 +4,7 @@ Created on 2022/01/08
 """
 import os
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
@@ -15,75 +15,20 @@ import torch
 import torch.nn as nn
 from attrdict import AttrDict
 from logzero import logger
-from mlflow.tracking import MlflowClient
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-from transformers import get_scheduler
-from mlflow.entities import Run
+
+from .. import base_trainer
 from ..callbacks import MLFlowExceptionCallback
 from ..metrics import get_ndcg, get_recall
 from ..ncf.datasets import NCFDataset
 from ..ncf.models import NCF
-from ..optimizers import DenseSparseAdamW
-from ..utils import set_seed
+from ..base_trainer import BaseTrainerModel, get_ckpt_path, get_run
 
 TInput = Union[torch.Tensor, Dict[str, torch.Tensor], Tuple[torch.Tensor]]
 TOutput = torch.Tensor
-TBatch = Tuple[TInput, TInput]
-
-
-def _get_optimizer(args: AttrDict) -> Optimizer:
-    model: nn.Module = args.model
-
-    no_decay = ["bias", "LayerNorm.weight"]
-
-    param_groups = [
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if not any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": args.decay,
-            "lr": args.lr,
-        },
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": 0.0,
-            "lr": args.lr,
-        },
-    ]
-
-    return DenseSparseAdamW(param_groups)
-
-
-def _get_scheduler(args: AttrDict, optimizer: Optimizer) -> Optional[_LRScheduler]:
-    if args.scheduler_type is None:
-        return
-
-    step_size = args.train_batch_size * args.accumulation_step
-    num_training_steps = (
-        (args.train_ids.shape[0] + step_size - 1) // step_size * args.num_epochs
-    )
-    num_warmup_steps = (
-        int(args.scheduler_warmup * num_training_steps)
-        if args.scheduler_warmup is not None
-        else None
-    )
-
-    return get_scheduler(
-        args.scheduler_type,
-        optimizer,
-        num_training_steps=num_training_steps,
-        num_warmup_steps=num_warmup_steps,
-    )
+TBatch = Tuple[TInput, TOutput]
 
 
 def _get_dataset(args: AttrDict) -> Tuple[NCFDataset, NCFDataset, NCFDataset]:
@@ -157,20 +102,14 @@ def _get_dataloader(
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def _get_run(log_dir: str, run_id: str) -> Run:
-    client = MlflowClient(log_dir)
-    run = client.get_run(run_id)
-    return run
-
-
 def _load_pretrained_model(
     log_dir: str,
     run_id: str,
     GMF_model: Optional[NCF] = None,
     MLP_model: Optional[NCF] = None,
 ) -> NCF:
-    ckpt_path = _get_ckpt_path(log_dir, run_id, load_best=True)
-    params = AttrDict(_get_run(log_dir, run_id).data.params)
+    ckpt_path = get_ckpt_path(log_dir, run_id, load_best=True)
+    params = AttrDict(get_run(log_dir, run_id).data.params)
 
     ckpt = torch.load(ckpt_path, map_location="cpu")
     model = NCF(
@@ -218,78 +157,9 @@ def _get_model(args: AttrDict) -> nn.Module:
     return model
 
 
-def _get_ckpt_path(log_dir: str, run_id: str, load_best: bool = False) -> str:
-    run = _get_run(log_dir, run_id)
-    ckpt_root_dir = os.path.join(log_dir, run.info.experiment_id, run_id, "checkpoints")
-    ckpt_path = os.path.join(ckpt_root_dir, "last.ckpt")
-    if load_best:
-        ckpt = torch.load(ckpt_path, map_location="cpu")
-        key = [k for k in ckpt["callbacks"].keys() if k.startswith("ModelCheckpoint")][
-            0
-        ]
-        ckpt_path = ckpt["callbacks"][key]["best_model_path"]
-
-    return ckpt_path
-
-
-class TrainerModel(pl.LightningModule):
-    IGNORE_HPARAMS: List[str] = [
-        "model",
-        "loss_func",
-        "train_dataset",
-        "valid_dataset",
-        "test_dataset",
-        "train_dataloader",
-        "valid_dataloader",
-        "test_dataloader",
-        "device",
-        "run_script",
-        "log_dir",
-        "experiment_name",
-        "data_dir",
-        "eval_ckpt_path",
-        "tags",
-        "is_hptuning",
-    ]
-
-    def __init__(
-        self, loss_func: Callable, is_hptuning: bool = False, **args: Any
-    ) -> None:
-        super().__init__()
-        self.args = AttrDict(args)
-        self.net = self.args.model
-        self.loss_func = loss_func
-        self.is_hptuning = is_hptuning
-        self.save_hyperparameters(ignore=self.IGNORE_HPARAMS)
-
+class TrainerModel(BaseTrainerModel):
     def forward(self, x: TInput) -> TOutput:
         return self.net(x)
-
-    def configure_optimizers(self):
-        optimizer = _get_optimizer(self.args)
-        scheduler = _get_scheduler(self.args, optimizer)
-
-        if scheduler is None:
-            return optimizer
-
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
-        }
-
-    def on_fit_start(self):
-        self.logger.experiment.set_tag(self.logger.run_id, "run_id", self.logger.run_id)
-        self.logger.experiment.set_tag(self.logger.run_id, "host", os.uname()[1])
-
-        for k, v in self.args.tags:
-            self.logger.experiment.set_tag(self.logger.run_id, k, v)
-
-        logger.info(f"run_id: {self.logger.run_id}")
-
-        if "run_script" in self.args:
-            self.logger.experiment.log_artifact(
-                self.logger.run_id, self.args.run_script, "scripts"
-            )
 
     def on_train_epoch_start(self) -> None:
         if hasattr(self.args.train_dataset, "ng_sample") and self.global_step > 0:
@@ -331,9 +201,7 @@ class TrainerModel(pl.LightningModule):
         predictions = np.concatenate(outputs)
         gt = self.args.valid_dataset.gt[: predictions.shape[0]]
         mlb = self.args.valid_dataset.mlb
-        # print("predictions.shape", predictions.shape)
-        # print("gt.shape", gt.shape)
-        # print("mlb:", len(mlb.classes_))
+
         n20 = get_ndcg(predictions, gt, mlb, top=20)
         r20 = get_recall(predictions, gt, mlb, top=20)
 
@@ -358,13 +226,8 @@ class TrainerModel(pl.LightningModule):
         self.log_dict(results, prog_bar=True)
 
 
-def init_run(args: AttrDict) -> None:
-    if args.seed is not None:
-        logger.info(f"seed: {args.seed}")
-        set_seed(args.seed)
-
-    args.device = torch.device("cpu" if args.no_cuda else "cuda")
-    args.num_gpus = torch.cuda.device_count()
+def init_run(*args, **kwargs):
+    base_trainer.init_run(*args, **kwargs)
 
 
 def check_args(args: AttrDict) -> None:
@@ -471,7 +334,7 @@ def train(args: AttrDict) -> Tuple[float, pl.Trainer]:
     )
 
     ckpt_path = (
-        _get_ckpt_path(args.log_dir, args.run_id, args.load_best)
+        get_ckpt_path(args.log_dir, args.run_id, args.load_best)
         if args.run_id
         else None
     )
@@ -492,7 +355,7 @@ def test(
 ) -> Dict[str, float]:
     if args.mode == "eval":
         assert args.run_id is not None, "run_id must be provided"
-        ckpt_path = _get_ckpt_path(args.log_dir, args.run_id, True)
+        ckpt_path = get_ckpt_path(args.log_dir, args.run_id, True)
     else:
         ckpt_path = args.eval_ckpt_path
 
