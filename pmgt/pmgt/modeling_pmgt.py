@@ -6,7 +6,7 @@ Created on 2022/01/08
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import torch
 import torch.linalg
@@ -533,7 +533,7 @@ class PMGTSelfAttention(nn.Module):
         return outputs
 
 
-class PMGTGraphRecoveryLoss(nn.Module):
+class PMGTGraphConstructLoss(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.loss_fn = nn.BCEWithLogitsLoss()
@@ -546,9 +546,24 @@ class PMGTGraphRecoveryLoss(nn.Module):
 class PMGTNodeConstructLoss(nn.Module):
     def __init__(self, config):
         super().__init__()
+        self.projections = nn.ModuleList(
+            [
+                nn.Linear(config.hidden_size, feat_hidden_size)
+                for feat_hidden_size in config.feat_hidden_sizes
+            ]
+        )
+        self.loss_fn = nn.MSELoss()
 
-    def forward(self):
-        pass
+    def forward(self, inputs, targets):
+        assert len(targets) == len(
+            self.projections
+        ), f"# of multi-modal features must be {len(self.projections)}"
+
+        loss = []
+        for target, projection in zip(targets, self.projections):
+            loss.append(self.loss_fn(projection(inputs), target))
+
+        return torch.stack(loss).mean()
 
 
 @dataclass

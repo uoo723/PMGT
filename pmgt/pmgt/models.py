@@ -11,7 +11,7 @@ import torch.nn as nn
 from .configuration_pmgt import PMGTConfig
 from .modeling_pmgt import (
     PMGTForPreTrainingOutput,
-    PMGTGraphRecoveryLoss,
+    PMGTGraphConstructLoss,
     PMGTModel,
     PMGTNodeConstructLoss,
     PMGTPretrainedModel,
@@ -26,9 +26,10 @@ class PMGT(PMGTPretrainedModel):
         feat_init_emb: Optional[List[np.ndarray]] = None,
     ) -> None:
         super().__init__(config)
+        self.node_size = node_size
         self.config = config
         self.bert = PMGTModel(config)
-        self.gsr_loss = PMGTGraphRecoveryLoss(config)
+        self.gsr_loss = PMGTGraphConstructLoss(config)
         self.nfr_loss = PMGTNodeConstructLoss(config)
 
         self.feat_embeddings = nn.ModuleList(
@@ -93,15 +94,16 @@ class PMGT(PMGTPretrainedModel):
         bert_outputs = self.bert(
             *input_feat_embeds,
             attention_mask=target_node_inputs["node_ids"],
-            output_attentions=None,
-            output_hidden_states=None,
-            return_dict=None,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
         )
 
         loss = None
         prediction_logits = None
 
         if pair_node_inputs is not None:
+            ############################## GSR Loss ###################################
             gsr_loss = []
             prediction_logits = []
             target_outputs = bert_outputs[0]
@@ -121,7 +123,35 @@ class PMGT(PMGTPretrainedModel):
                 bs = be
             gsr_loss = torch.stack(gsr_loss).mean()
             prediction_logits = torch.cat(prediction_logits)
-            loss = gsr_loss
+            ###########################################################################
+
+            ############################### NFR Loss ##################################
+            masked_input_ids = target_node_inputs["node_ids"].clone()
+            input_shape = masked_input_ids.size()
+            rand = torch.rand(input_shape[0], input_shape[1] - 1)  # except target node
+            # Random node replacement
+            mask = (rand < 0.2 * 0.1) * (masked_input_ids[:, 1:] != 0)
+            masked_input_ids[:, 1:][mask] = torch.randint(
+                2, self.node_size + 2, (mask.sum(),)
+            )
+
+            rand = torch.rand(input_shape[0], input_shape[1] - 1)  # except target node
+            mask = (rand < 0.2 * 0.8) * (masked_input_ids[:, 1:] != 0)  # except padding
+            target_idx = masked_input_ids[:, 1:][mask]
+            masked_input_ids[:, 1:][mask] = 1  # Fill mask index
+
+            masked_outputs = self.bert(
+                *self._get_input_feat_embeds(masked_input_ids),
+                attention_mask=target_node_inputs["attention_mask"],
+            )[0]
+
+            masked_outputs = masked_outputs[:, 1:][mask]
+            target_embeds = self._get_input_feat_embeds(target_idx)
+
+            nsr_loss = self.nfr_loss(masked_outputs, target_embeds)
+            ###########################################################################
+
+            loss = gsr_loss + nsr_loss
 
         if not return_dict:
             return (loss, prediction_logits) + bert_outputs
