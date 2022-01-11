@@ -5,11 +5,14 @@ Created on 2022/01/08
 """
 
 import math
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 import torch
 import torch.linalg
 import torch.nn as nn
 import torch.utils.checkpoint
+from transformers.file_utils import ModelOutput
 from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling
 from transformers.modeling_utils import (
     PreTrainedModel,
@@ -530,22 +533,29 @@ class PMGTSelfAttention(nn.Module):
         return outputs
 
 
-class NodeConstructOutputLayer(nn.Module):
-    pass
-    # def __init__(self, config):
-    #     super().__init__()
-    #     self.transform = BertPredictionHeadTransform(config)
+class PMGTGraphRecoveryLoss(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.loss_fn = nn.BCEWithLogitsLoss()
 
-    #     # The output weights are the same as the input embeddings, but there is
-    #     # an output-only bias for each token.
-    #     self.decoder = nn.Linear(config.hidden_size, config.x_size, bias=False)
+    def forward(self, hidden_states, other_hidden_states, labels):
+        logits = hidden_states @ other_hidden_states
+        return self.loss_fn(logits, labels), logits
 
-    #     self.bias = nn.Parameter(torch.zeros(config.x_size))
 
-    #     # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
-    #     self.decoder.bias = self.bias
+class PMGTNodeConstructLoss(nn.Module):
+    def __init__(self, config):
+        super().__init__()
 
-    # def forward(self, hidden_states):
-    #     hidden_states = self.transform(hidden_states)
-    #     hidden_states = self.decoder(hidden_states) + self.bias
-    #     return hidden_states
+    def forward(self):
+        pass
+
+
+@dataclass
+class PMGTForPreTrainingOutput(ModelOutput):
+    loss: Optional[torch.FloatTensor] = None
+    prediction_logits: Optional[torch.FloatTensor] = None
+    last_hidden_state: torch.FloatTensor = None
+    pooler_output: Optional[torch.FloatTensor] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    attentions: Optional[Tuple[torch.FloatTensor]] = None
