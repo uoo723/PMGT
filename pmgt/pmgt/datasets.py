@@ -125,9 +125,9 @@ class PMGTDataset(torch.utils.data.Dataset):
     def _sample_neg(self, target_node: int, num_samples: int) -> List[int]:
         neg_nodes = []
         for _ in range(num_samples):
-            candidate = np.random.randint(len(self.graph)) + 1
+            candidate = np.random.randint(len(self.graph)) + 2
             while candidate in self.graph[target_node]:
-                candidate = np.random.randint(len(self.graph)) + 1
+                candidate = np.random.randint(len(self.graph)) + 2
             neg_nodes.append(candidate)
         return neg_nodes
 

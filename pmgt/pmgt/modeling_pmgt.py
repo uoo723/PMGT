@@ -6,11 +6,12 @@ Created on 2022/01/08
 
 import math
 from dataclasses import dataclass
-from typing import Iterable, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.linalg
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.utils.checkpoint
 from transformers.file_utils import ModelOutput
 from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling
@@ -539,6 +540,8 @@ class PMGTGraphConstructLoss(nn.Module):
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(self, hidden_states, other_hidden_states, labels):
+        hidden_states = F.normalize(hidden_states, dim=-1)
+        other_hidden_states = F.normalize(other_hidden_states, dim=-1)
         logits = hidden_states @ other_hidden_states
         return self.loss_fn(logits, labels), logits
 

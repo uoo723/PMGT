@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 import pytorch_lightning as pl
 import pytorch_lightning.loggers as pl_loggers
 import torch
+import torch.cuda
 import torch.nn as nn
 from attrdict import AttrDict
 from logzero import logger

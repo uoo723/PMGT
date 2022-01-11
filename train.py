@@ -141,6 +141,71 @@ def train_dcn(ctx: click.core.Context, **args):
 
 
 @cli.command(context_settings={"show_default": True})
+@add_options(_common_options)
+@click.option(
+    "--max-ctx-neigh",
+    type=click.INT,
+    default=5,
+    help="maximum num of contextual neighbors",
+)
+@click.option(
+    "--hop-sampling-sizes",
+    type=click.INT,
+    multiple=True,
+    default=[16, 8, 4],
+    help="# of maximum sampling nodes in each hop",
+)
+@click.option(
+    "--max-total-samples",
+    type=click.INT,
+    default=10,
+    help="maximum of total num of postive and negative nodes for each target node",
+)
+@click.option(
+    "--min-neg-samples", type=click.INT, default=5, help="minimum num of negative nodes"
+)
+@click.option(
+    "--hidden-size",
+    type=click.INT,
+    default=128,
+    help="BERT output hidden size",
+)
+@click.option(
+    "--intermediate-size",
+    type=click.INT,
+    default=128,
+    help="BERT intermediate hidden size",
+)
+@click.option(
+    "--num-hidden-layers",
+    type=click.INT,
+    default=5,
+    help="BERT num of hidden layers",
+)
+@click.option(
+    "--num-attention-heads",
+    type=click.INT,
+    default=1,
+    help="BERT num of attention heads",
+)
+@click.option(
+    "--beta",
+    type=click.FLOAT,
+    default=0.5,
+    help="PMGT diversity promoting attention weight",
+)
+@click.option(
+    "--random-node-ratio",
+    type=click.FLOAT,
+    default=0.2 * 0.1,
+    help="PMGT random node ratio",
+)
+@click.option(
+    "--mask-node-ratio",
+    type=click.FLOAT,
+    default=0.2 * 0.8,
+    help="PMGT mask node ratio",
+)
 @click.pass_context
 @log_elapsed_time
 def train_pmgt(ctx: click.core.Context, **args):

@@ -22,11 +22,15 @@ class PMGT(PMGTPretrainedModel):
     def __init__(
         self,
         node_size: int,
+        random_node_ratio: float = 0.2 * 0.1,
+        mask_node_ratio: float = 0.2 * 0.8,
         config: PMGTConfig = PMGTConfig(),
         feat_init_emb: Optional[List[np.ndarray]] = None,
     ) -> None:
         super().__init__(config)
         self.node_size = node_size
+        self.random_node_ratio = random_node_ratio
+        self.mask_node_ratio = mask_node_ratio
         self.config = config
         self.bert = PMGTModel(config)
         self.gsr_loss = PMGTGraphConstructLoss(config)
@@ -89,6 +93,7 @@ class PMGT(PMGTPretrainedModel):
             return_dict if return_dict is not None else self.config.use_return_dict
         )
 
+        device = target_node_inputs["node_ids"].device
         input_feat_embeds = self._get_input_feat_embeds(target_node_inputs["node_ids"])
 
         bert_outputs = self.bert(
@@ -125,33 +130,42 @@ class PMGT(PMGTPretrainedModel):
             prediction_logits = torch.cat(prediction_logits)
             ###########################################################################
 
-            ############################### NFR Loss ##################################
-            masked_input_ids = target_node_inputs["node_ids"].clone()
-            input_shape = masked_input_ids.size()
-            rand = torch.rand(input_shape[0], input_shape[1] - 1)  # except target node
-            # Random node replacement
-            mask = (rand < 0.2 * 0.1) * (masked_input_ids[:, 1:] != 0)
-            masked_input_ids[:, 1:][mask] = torch.randint(
-                2, self.node_size + 2, (mask.sum(),)
-            )
+            nfr_loss = 0
+            if self.training:
+                ############################### NFR Loss ##################################
+                masked_input_ids = target_node_inputs["node_ids"].clone()
+                input_shape = masked_input_ids.size()
+                # except target node
+                rand = torch.rand(input_shape[0], input_shape[1] - 1, device=device)
+                # Random node replacement
+                mask = (rand < self.random_node_ratio) * (masked_input_ids[:, 1:] != 0)
+                masked_input_ids[:, 1:][mask] = torch.randint(
+                    2,
+                    self.node_size + 2,
+                    (mask.sum(),),
+                    device=device,
+                )
 
-            rand = torch.rand(input_shape[0], input_shape[1] - 1)  # except target node
-            mask = (rand < 0.2 * 0.8) * (masked_input_ids[:, 1:] != 0)  # except padding
-            target_idx = masked_input_ids[:, 1:][mask]
-            masked_input_ids[:, 1:][mask] = 1  # Fill mask index
+                # Masking node
+                # except target node
+                rand = torch.rand(input_shape[0], input_shape[1] - 1, device=device)
+                # except padding
+                mask = (rand < self.mask_node_ratio) * (masked_input_ids[:, 1:] != 0)
+                target_idx = masked_input_ids[:, 1:][mask]
+                masked_input_ids[:, 1:][mask] = 1  # Fill mask index
 
-            masked_outputs = self.bert(
-                *self._get_input_feat_embeds(masked_input_ids),
-                attention_mask=target_node_inputs["attention_mask"],
-            )[0]
+                masked_outputs = self.bert(
+                    *self._get_input_feat_embeds(masked_input_ids),
+                    attention_mask=target_node_inputs["attention_mask"],
+                )[0]
 
-            masked_outputs = masked_outputs[:, 1:][mask]
-            target_embeds = self._get_input_feat_embeds(target_idx)
+                masked_outputs = masked_outputs[:, 1:][mask]
+                target_embeds = self._get_input_feat_embeds(target_idx)
 
-            nsr_loss = self.nfr_loss(masked_outputs, target_embeds)
-            ###########################################################################
+                nfr_loss = self.nfr_loss(masked_outputs, target_embeds)
+                ###########################################################################
 
-            loss = gsr_loss + nsr_loss
+            loss = gsr_loss + nfr_loss
 
         if not return_dict:
             return (loss, prediction_logits) + bert_outputs
