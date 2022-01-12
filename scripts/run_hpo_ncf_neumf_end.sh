@@ -4,7 +4,7 @@ args=(
     --study-name "NCF-NeuMF-end"
     --train-config-path './config/hpo/train_ncf_neumf_end_params.json'
     --hp-config-path './config/hpo/hpo_ncf_neumf_end_params.yaml'
-    --train-func 'train_ncf'
+    --train-name 'ncf'
     --n-trials 100
 )
 
