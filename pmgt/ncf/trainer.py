@@ -8,21 +8,23 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
+import optuna
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from attrdict import AttrDict
 from logzero import logger
+from optuna import Trial
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from .. import base_trainer
 from ..base_trainer import BaseTrainerModel, get_ckpt_path, get_run
 from ..metrics import get_ndcg, get_recall
+from ..pmgt.utils import load_node_init_emb
 from .datasets import NCFDataset
 from .models import NCF
-from ..pmgt.utils import load_node_init_emb
 
 TInput = Union[torch.Tensor, Dict[str, torch.Tensor], Tuple[torch.Tensor]]
 TOutput = torch.Tensor
@@ -222,6 +224,13 @@ class NCFTrainerModel(BaseTrainerModel):
 
         self.log_dict(results, prog_bar=True)
 
+        if self.trial is not None:
+            self.trial.report(
+                results["val/" + self.args.early_criterion], self.global_step
+            )
+            if self.trial.should_prune():
+                raise optuna.TrialPruned()
+
     def test_epoch_end(self, outputs: List[np.ndarray]) -> None:
         predictions = np.concatenate(outputs)
         dataset = (
@@ -276,8 +285,12 @@ def init_model(args: AttrDict) -> None:
     base_trainer.init_model(args, _get_model)
 
 
-def train(args: AttrDict) -> Tuple[float, pl.Trainer]:
-    return base_trainer.train(args, NCFTrainerModel)
+def train(
+    args: AttrDict, is_hptuning: bool = False, trial: Optional[Trial] = None
+) -> Tuple[float, pl.Trainer]:
+    return base_trainer.train(
+        args, NCFTrainerModel, is_hptuning=is_hptuning, trial=trial
+    )
 
 
 def test(

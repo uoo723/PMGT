@@ -8,11 +8,13 @@ from typing import Dict, List, Optional, Tuple
 import joblib
 import networkx as nx
 import numpy as np
+import optuna
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from attrdict import AttrDict
 from logzero import logger
+from optuna import Trial
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -180,7 +182,7 @@ class PMGTTrainerModel(BaseTrainerModel):
 
     def _valid_and_test_epoch_end(
         self, outputs: Tuple[List[np.ndarray], List[np.ndarray]], log_auc_name: str
-    ) -> None:
+    ) -> Dict[str, float]:
         batch_size = self.args.valid_dataloader.batch_size
 
         predictions, labels = zip(*outputs)
@@ -191,10 +193,17 @@ class PMGTTrainerModel(BaseTrainerModel):
         results = {log_auc_name: auc}
         self.log_dict(results, prog_bar=True, batch_size=batch_size)
 
+        return results
+
     def validation_epoch_end(
         self, outputs: Tuple[List[np.ndarray], List[np.ndarray]]
     ) -> None:
-        self._valid_and_test_epoch_end(outputs, "val/auc")
+        results = self._valid_and_test_epoch_end(outputs, "val/auc")
+
+        if self.trial is not None:
+            self.trial.report(results["val/auc"], self.global_step)
+            if self.trial.should_prune():
+                raise optuna.TrialPruned()
 
     def test_epoch_end(
         self, outputs: Tuple[List[np.ndarray], List[np.ndarray]]
@@ -225,8 +234,12 @@ def init_model(args: AttrDict) -> None:
     base_trainer.init_model(args, _get_model)
 
 
-def train(args: AttrDict) -> Tuple[float, pl.Trainer]:
-    return base_trainer.train(args, PMGTTrainerModel)
+def train(
+    args: AttrDict, is_hptuning: bool = False, trial: Optional[Trial] = None
+) -> Tuple[float, pl.Trainer]:
+    return base_trainer.train(
+        args, PMGTTrainerModel, is_hptuning=is_hptuning, trial=trial
+    )
 
 
 def test(

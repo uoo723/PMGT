@@ -2,12 +2,13 @@
 Created on 2022/01/05
 @author Sangwoo Han
 """
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import click
 import numpy as np
 from attrdict import AttrDict
 from logzero import logger
+from optuna import Trial
 
 from main import cli
 from pmgt.utils import log_elapsed_time, save_args
@@ -230,7 +231,7 @@ def train_pmgt(ctx: click.core.Context, **args):
 
 
 def train_model(
-    train_name, is_hptuning=False, **args
+    train_name, is_hptuning: bool = False, trial: Optional[Trial] = None, **args
 ) -> Union[Dict[str, float], np.ndarray]:
     assert train_name in ["ncf", "pmgt"]
 
@@ -252,7 +253,7 @@ def train_model(
 
     pl_trainer = None
     if args.mode == "train":
-        _, pl_trainer = trainer.train(args)
+        _, pl_trainer = trainer.train(args, is_hptuning=is_hptuning, trial=trial)
 
     if args.mode == "eval":
         logger.info("Eval mode")

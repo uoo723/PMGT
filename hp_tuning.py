@@ -63,7 +63,7 @@ def objective(
     params = copy.deepcopy(train_params)
     params.update(_get_hp_params(trial, hp_params))
     params.tags = list(params.tags) + [("trial", trial.number)]
-    results = train_model(train_name, is_hptuning=True, **params)
+    results = train_model(train_name, is_hptuning=True, trial=trial, **params)
     return results[criterion] if criterion in results else 0
 
 
@@ -90,7 +90,7 @@ def objective(
 )
 @click.option(
     "--train-name",
-    type=click.Choice(["ncf", "dcn", 'pmgt']),
+    type=click.Choice(["ncf", "dcn", "pmgt"]),
     default="ncf",
     help="Set train name",
 )

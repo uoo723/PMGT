@@ -4,6 +4,7 @@ Created on 2022/01/08
 """
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import optuna
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import Callback
@@ -27,7 +28,9 @@ class MLFlowExceptionCallback(Callback):
         exception: BaseException,
     ) -> None:
         logger = pl_module.logger
-        if logger.experiment.get_run(logger.run_id):
+        if logger.experiment.get_run(logger.run_id) and not isinstance(
+            exception, optuna.TrialPruned
+        ):
             logger.experiment.set_terminated(logger.run_id, status="FAILED")
 
     def on_test_start(

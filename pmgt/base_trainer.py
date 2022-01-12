@@ -15,6 +15,7 @@ from attrdict import AttrDict
 from logzero import logger
 from mlflow.entities import Run
 from mlflow.tracking import MlflowClient
+from optuna import Trial
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -116,17 +117,20 @@ class BaseTrainerModel(pl.LightningModule):
         "tags",
         "is_hptuning",
         "inference_result_path",
+        "trial",
     ]
 
     def __init__(
         self,
         is_hptuning: bool = False,
+        trial: Optional[Trial] = None,
         **args: Any,
     ) -> None:
         super().__init__()
         self.args = AttrDict(args)
         self.net = self.args.model
         self.is_hptuning = is_hptuning
+        self.trial = trial
         self.save_hyperparameters(ignore=self.IGNORE_HPARAMS)
 
     def configure_optimizers(self):
@@ -233,6 +237,8 @@ def init_model(args: AttrDict, get_model: Callable) -> None:
 def train(
     args: AttrDict,
     TrainerModel: Type[BaseTrainerModel],
+    is_hptuning: bool = False,
+    trial: Optional[Trial] = None,
     **trainer_model_args,
 ) -> Tuple[float, pl.Trainer]:
     if args.run_name is None:
@@ -262,7 +268,10 @@ def train(
     )
     mlflow_exception_callback = MLFlowExceptionCallback()
 
-    trainer_model = TrainerModel(**trainer_model_args, **args)
+    trainer_model = TrainerModel(
+        is_hptuning=is_hptuning, trial=trial, **trainer_model_args, **args
+    )
+
     trainer = pl.Trainer(
         default_root_dir=args.log_dir,
         gpus=args.num_gpus,
