@@ -125,6 +125,12 @@ def add_options(options):
     type=click.Path(exists=True),
     help="item init embedding path from PMGT",
 )
+@click.option(
+    "--freeze-item-init-emb",
+    is_flag=True,
+    default=False,
+    help="freeze item init embedding affected only if item-init-emb-path is set",
+)
 @click.pass_context
 @log_elapsed_time
 def train_ncf(ctx: click.core.Context, **args):

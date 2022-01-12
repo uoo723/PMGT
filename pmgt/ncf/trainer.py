@@ -162,6 +162,7 @@ def _get_model(args: AttrDict) -> nn.Module:
             item_encoder_path, node_encoder_path, args.item_init_emb_path
         )
         model.embed_item_MLP.weight.data.copy_(torch.from_numpy(item_init_emb))
+        model.embed_item_MLP.requires_grad_(not args.freeze_item_init_emb)
     return model
 
 
