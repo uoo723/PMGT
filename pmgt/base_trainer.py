@@ -106,7 +106,7 @@ class BaseTrainerModel(pl.LightningModule):
         "train_dataloader",
         "valid_dataloader",
         "test_dataloader",
-        "inference_dataloader"
+        "inference_dataloader",
         "device",
         "run_script",
         "log_dir",
@@ -115,6 +115,7 @@ class BaseTrainerModel(pl.LightningModule):
         "eval_ckpt_path",
         "tags",
         "is_hptuning",
+        "inference_result_path",
     ]
 
     def __init__(
