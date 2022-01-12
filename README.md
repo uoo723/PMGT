@@ -83,6 +83,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.12]  
+  - PMGT training 구현 ([pmgt/pmgt/trainer.py](pmgt/pmgt/trainer.py))  
+
 [2022.01.11]  
  - Graph structure reconstruction loss 구현 ([pmgt/pmgt/models.py](pmgt/pmgt/models.py))  
  - Node feature reconstruction loss 구현  
