@@ -2,6 +2,10 @@ lr:
   type: categorical
   value: [1e-4, 5e-4, 1e-3, 5e-3]
 
+decay:
+  type: categorical
+  value: [0, 1e-4, 1e-3, 1e-2]
+
 dropout:
   type: float
   step: 0.1
@@ -16,3 +20,7 @@ alpha:
   type: float
   step: 0.1
   value: [0.1, 0.9]
+
+freeze_item_init_emb:
+  type: categorical
+  value: [true, false]
