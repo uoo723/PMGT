@@ -1,0 +1,18 @@
+lr:
+  type: categorical
+  value: [1e-4, 5e-4, 1e-3, 5e-3]
+
+dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.6]
+
+emb_dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.6]
+
+alpha:
+  type: float
+  step: 0.1
+  value: [0.1, 0.9]
