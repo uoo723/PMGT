@@ -27,6 +27,9 @@ from .models import PMGT
 
 
 def _get_dataset(args: AttrDict) -> Tuple[PMGTDataset, PMGTDataset, PMGTDataset]:
+    if args.run_id is not None:
+        _set_dataset_param(args)
+
     data_dir = os.path.join(args.data_dir, args.dataset_name)
     node_encoder: LabelEncoder = joblib.load(os.path.join(data_dir, "node_encoder"))
     graph = nx.read_gpickle(os.path.join(data_dir, "graph.gpickle"))
@@ -65,6 +68,16 @@ def _get_dataset(args: AttrDict) -> Tuple[PMGTDataset, PMGTDataset, PMGTDataset]
     )
 
     return train_dataset, valid_dataset, valid_dataset
+
+
+def _set_dataset_param(args: AttrDict) -> None:
+    run = base_trainer.get_run(args.log_dir, args.run_id)
+    params = AttrDict(run.data.params)
+
+    args.max_ctx_neigh = int(params.max_ctx_neigh)
+    args.max_total_samples = int(params.max_total_samples)
+    args.min_neg_samples = int(params.min_neg_samples)
+    args.hop_sampling_sizes = eval(params.hop_sampling_sizes)
 
 
 def _get_dataloader(
