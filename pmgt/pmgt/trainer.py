@@ -92,6 +92,9 @@ def _get_dataloader(
 
 
 def _get_model(args: AttrDict) -> nn.Module:
+    if args.run_id is not None:
+        _set_model_param(args)
+
     data_dir = os.path.join(args.data_dir, args.dataset_name)
 
     visual_init_emb = np.load(os.path.join(data_dir, "visual_init_emb.npy"))
@@ -116,6 +119,18 @@ def _get_model(args: AttrDict) -> nn.Module:
     )
 
     return model
+
+
+def _set_model_param(args: AttrDict) -> None:
+    run = base_trainer.get_run(args.log_dir, args.run_id)
+    params = AttrDict(run.data.params)
+    args.hidden_size = int(params.hidden_size)
+    args.intermediate_size = int(params.intermediate_size)
+    args.num_hidden_layers = int(params.num_hidden_layers)
+    args.num_attention_heads = int(params.num_attention_heads)
+    args.beta = float(params.beta)
+    args.random_node_ratio = float(params.random_node_ratio)
+    args.mask_node_ratio = float(params.mask_node_ratio)
 
 
 class PMGTTrainerModel(BaseTrainerModel):

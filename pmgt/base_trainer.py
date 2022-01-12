@@ -171,6 +171,9 @@ def check_args(
     model_name: List[str],
     dataset_name: List[str],
 ) -> None:
+    if args.mode in ["eval", "inference"]:
+        assert args.run_id is not None, f"run_id must be provided in mode {args.mode}"
+
     assert (
         args.early_criterion in early_criterion
     ), f"early_criterion must be one of {early_criterion}"
@@ -301,7 +304,6 @@ def test(
     **trainer_model_args,
 ) -> Dict[str, float]:
     if args.mode == "eval":
-        assert args.run_id is not None, "run_id must be provided"
         ckpt_path = get_ckpt_path(args.log_dir, args.run_id, True)
     else:
         ckpt_path = args.eval_ckpt_path
@@ -337,7 +339,6 @@ def inference(
     **trainer_model_args,
 ) -> np.ndarray:
     assert args.mode == "inference", "mode must be inference"
-    assert args.run_id is not None, "run_id must be provided"
 
     ckpt_path = get_ckpt_path(args.log_dir, args.run_id, True)
 
