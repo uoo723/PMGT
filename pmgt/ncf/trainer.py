@@ -22,6 +22,7 @@ from ..base_trainer import BaseTrainerModel, get_ckpt_path, get_run
 from ..metrics import get_ndcg, get_recall
 from .datasets import NCFDataset
 from .models import NCF
+from ..pmgt.utils import load_node_init_emb
 
 TInput = Union[torch.Tensor, Dict[str, torch.Tensor], Tuple[torch.Tensor]]
 TOutput = torch.Tensor
@@ -153,6 +154,14 @@ def _get_model(args: AttrDict) -> nn.Module:
             alpha=args.alpha,
         )
 
+    if args.item_init_emb_path is not None:
+        data_dir = os.path.join(args.data_dir, args.dataset_name)
+        item_encoder_path = os.path.join(data_dir, "item_encoder")
+        node_encoder_path = os.path.join(data_dir, "node_encoder")
+        item_init_emb = load_node_init_emb(
+            item_encoder_path, node_encoder_path, args.item_init_emb_path
+        )
+        model.embed_item_MLP.weight.data.copy_(torch.from_numpy(item_init_emb))
     return model
 
 
@@ -247,6 +256,11 @@ def check_args(args: AttrDict) -> None:
         assert (
             args.mlp_run_id is not None
         ), f"MLP_run_id must be set, when model_name = {args.model_name}"
+
+    if args.item_init_emb_path:
+        assert (
+            args.model_name == "NeuMF-end"
+        ), "If item_init_emb_path is set, model_name must be NeuMF-end"
 
 
 def init_dataloader(args: AttrDict) -> None:

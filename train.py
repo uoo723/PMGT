@@ -120,6 +120,11 @@ def add_options(options):
     type=click.STRING,
     help="run id for MLP to load weights",
 )
+@click.option(
+    "--item-init-emb-path",
+    type=click.Path(exists=True),
+    help="item init embedding path from PMGT",
+)
 @click.pass_context
 @log_elapsed_time
 def train_ncf(ctx: click.core.Context, **args):
