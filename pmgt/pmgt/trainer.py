@@ -122,7 +122,7 @@ class PMGTTrainerModel(BaseTrainerModel):
     IGNORE_HPARAMS: List[str] = BaseTrainerModel.IGNORE_HPARAMS + ["graph"]
 
     def forward(self, x):
-        return self.net(x)[0]
+        return self.net(x)[0][:, 0].cpu().numpy()
 
     def training_step(self, batch, batch_idx: int) -> torch.Tensor:
         loss = self.net(*batch)[0]
@@ -211,3 +211,22 @@ def test(
         trainer=trainer,
         is_hptuning=is_hptuning,
     )
+
+
+def inference(args: AttrDict) -> np.ndarray:
+    dataset = PMGTDataset(
+        args.graph,
+        max_ctx_neigh=args.max_ctx_neigh,
+        hop_sampling_sizes=args.hop_sampling_sizes,
+        is_training=False,
+        is_inference=True,
+    )
+
+    args.inference_dataloader = DataLoader(
+        dataset,
+        batch_size=args.test_batch_size,
+        num_workers=args.num_workers,
+        collate_fn=pmgt_collate_fn,
+    )
+
+    return base_trainer.inference(args, PMGTTrainerModel)

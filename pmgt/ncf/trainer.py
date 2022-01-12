@@ -275,3 +275,7 @@ def test(
         trainer=trainer,
         is_hptuning=is_hptuning,
     )
+
+
+def inference(args: AttrDict):
+    raise NotImplemented

@@ -2,9 +2,10 @@
 Created on 2022/01/05
 @author Sangwoo Han
 """
-from typing import Dict
+from typing import Dict, Union
 
 import click
+import numpy as np
 from attrdict import AttrDict
 from logzero import logger
 
@@ -49,10 +50,11 @@ _common_options = [
     ),
     click.option(
         "--mode",
-        type=click.Choice(["train", "eval"]),
+        type=click.Choice(["train", "eval", "inference"]),
         default="train",
-        help="train: train and eval are executed. eval: eval only",
+        help="train: train and eval are executed. eval: eval only, inference: inference only",
     ),
+    click.option("--inference-result-path",type=click.Path(), help="inference results path"),
     ######################################################################################################
 
     ########################################### Log Options ##############################################
@@ -216,27 +218,33 @@ def train_pmgt(ctx: click.core.Context, **args):
     train_model("pmgt", **args)
 
 
-def train_model(train_name, is_hptuning=False, **args) -> Dict[str, float]:
+def train_model(
+    train_name, is_hptuning=False, **args
+) -> Union[Dict[str, float], np.ndarray]:
     assert train_name in ["ncf", "pmgt"]
+
+    args = AttrDict(args)
 
     if train_name == "ncf":
         import pmgt.ncf.trainer as trainer
     elif train_name == "pmgt":
         import pmgt.pmgt.trainer as trainer
 
-    args = AttrDict(args)
-
-    if args.mode == "eval":
-        logger.info("Eval mode")
-
     trainer.check_args(args)
     trainer.init_run(args)
     trainer.init_dataloader(args)
     trainer.init_model(args)
 
+    if args.mode == "inference":
+        logger.info("Inference mode")
+        return trainer.inference(args)
+
     pl_trainer = None
     if args.mode == "train":
         _, pl_trainer = trainer.train(args)
+
+    if args.mode == "eval":
+        logger.info("Eval mode")
 
     try:
         return trainer.test(args, pl_trainer, is_hptuning=is_hptuning)

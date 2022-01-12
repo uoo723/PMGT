@@ -3,7 +3,7 @@ Created on 2022/01/08
 @author Sangwoo Han
 """
 from collections import Counter, defaultdict
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -21,6 +21,7 @@ class PMGTDataset(torch.utils.data.Dataset):
         max_total_samples: int = 10,
         min_neg_samples: int = 5,
         is_training: bool = True,
+        is_inference: bool = False,
     ) -> None:
         super().__init__()
         self.graph = graph
@@ -36,16 +37,22 @@ class PMGTDataset(torch.utils.data.Dataset):
         self.max_total_samples = max_total_samples
         self.min_neg_samples = min_neg_samples
         self.is_training = is_training
+        self.is_inference = is_inference
 
         self.depth = len(self.hop_sampling_sizes)
 
     def __len__(self) -> int:
         return len(self.node_ids)  # num of nodes
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         target_node = self.node_ids[idx]
 
         target_inputs = self._get_input_tensor(target_node)
+
+        if self.is_inference:
+            return (target_inputs,)
 
         num_neigh_nodes = (
             self.max_total_samples - self.min_neg_samples if self.is_training else 1
@@ -157,6 +164,9 @@ def pmgt_collate_fn(
         "node_ids": torch.stack([b[0][0] for b in batch]),
         "attention_mask": torch.stack([b[0][1] for b in batch]),
     }
+
+    if len(batch[0]) == 1:
+        return target_inputs
 
     pair_inputs = {
         "node_ids": torch.cat([b[1][0] for b in batch]),

@@ -5,6 +5,7 @@ Created on 2022/01/11
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
+import numpy as np
 import pytorch_lightning as pl
 import pytorch_lightning.loggers as pl_loggers
 import torch
@@ -101,9 +102,11 @@ class BaseTrainerModel(pl.LightningModule):
         "train_dataset",
         "valid_dataset",
         "test_dataset",
+        "inference_dataset",
         "train_dataloader",
         "valid_dataloader",
         "test_dataloader",
+        "inference_dataloader"
         "device",
         "run_script",
         "log_dir",
@@ -325,3 +328,34 @@ def test(
         logger.info(msg)
 
     return results or {}
+
+
+def inference(
+    args: AttrDict,
+    TrainerModel: Type[BaseTrainerModel],
+    **trainer_model_args,
+) -> np.ndarray:
+    assert args.mode == "inference", "mode must be inference"
+    assert args.run_id is not None, "run_id must be provided"
+
+    ckpt_path = get_ckpt_path(args.log_dir, args.run_id, True)
+
+    trainer_model = TrainerModel(**trainer_model_args, **args)
+
+    trainer = pl.Trainer(
+        gpus=args.num_gpus,
+        precision=16 if args.mp_enabled else 32,
+        enable_model_summary=False,
+        logger=False,
+    )
+
+    predictions = trainer.predict(
+        trainer_model, args.inference_dataloader, ckpt_path=ckpt_path
+    )
+    predictions = np.concatenate(predictions)
+
+    if args.inference_result_path is not None:
+        np.save(args.inference_result_path, predictions)
+        logger.info(f"Save result: {args.inference_result_path}")
+
+    return predictions
