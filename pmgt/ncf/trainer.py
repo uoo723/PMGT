@@ -262,9 +262,10 @@ def check_args(args: AttrDict) -> None:
         ), f"MLP_run_id must be set, when model_name = {args.model_name}"
 
     if args.item_init_emb_path:
-        assert (
-            args.model_name == "NeuMF-end"
-        ), "If item_init_emb_path is set, model_name must be NeuMF-end"
+        assert args.model_name in [
+            "NeuMF-end",
+            "MLP",
+        ], "If item_init_emb_path is set, model_name must be NeuMF-end or MLP"
 
 
 def init_dataloader(args: AttrDict) -> None:
