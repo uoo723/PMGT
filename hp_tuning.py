@@ -61,11 +61,18 @@ def objective(
     hp_params: Dict,
     train_name: str,
     criterion: str,
+    enable_trial_pruning: bool,
 ) -> float:
     params = copy.deepcopy(train_params)
     params.update(_get_hp_params(trial, hp_params))
     params.tags = list(params.tags) + [("trial", trial.number)]
-    results = train_model(train_name, is_hptuning=True, trial=trial, **params)
+    results = train_model(
+        train_name,
+        is_hptuning=True,
+        trial=trial,
+        enable_trial_pruning=enable_trial_pruning,
+        **params,
+    )
     return results[criterion] if criterion in results else 0
 
 
@@ -95,6 +102,12 @@ def objective(
     type=click.Choice(["ncf", "dcn", "pmgt"]),
     default="ncf",
     help="Set train name",
+)
+@click.option(
+    "--enable-trial-pruning",
+    is_flag=True,
+    default=False,
+    help="enable trial pruning",
 )
 @log_elapsed_time
 def hp_tuning(**args):
@@ -126,6 +139,7 @@ def hp_tuning(**args):
                 hp_params=hp_params,
                 train_name=args.train_name,
                 criterion="test/" + train_params.early_criterion,
+                enable_trial_pruning=args.enable_trial_pruning,
             ),
             callbacks=[partial(_max_trial_callback, n_trials=args.n_trials)],
         )

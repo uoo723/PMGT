@@ -231,10 +231,17 @@ def init_model(args: AttrDict) -> None:
 
 
 def train(
-    args: AttrDict, is_hptuning: bool = False, trial: Optional[Trial] = None
+    args: AttrDict,
+    is_hptuning: bool = False,
+    trial: Optional[Trial] = None,
+    enable_trial_pruning: bool = False,
 ) -> Tuple[float, pl.Trainer]:
     return base_trainer.train(
-        args, PMGTTrainerModel, is_hptuning=is_hptuning, trial=trial
+        args,
+        PMGTTrainerModel,
+        is_hptuning=is_hptuning,
+        trial=trial,
+        enable_trial_pruning=enable_trial_pruning,
     )
 
 

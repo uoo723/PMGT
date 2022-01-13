@@ -119,12 +119,14 @@ class BaseTrainerModel(pl.LightningModule):
         "is_hptuning",
         "inference_result_path",
         "trial",
+        "enable_trial_pruning",
     ]
 
     def __init__(
         self,
         is_hptuning: bool = False,
         trial: Optional[Trial] = None,
+        enable_trial_pruning: bool = False,
         **args: Any,
     ) -> None:
         super().__init__()
@@ -132,6 +134,7 @@ class BaseTrainerModel(pl.LightningModule):
         self.net = self.args.model
         self.is_hptuning = is_hptuning
         self.trial = trial
+        self.enable_trial_pruning = enable_trial_pruning
         self.save_hyperparameters(ignore=self.IGNORE_HPARAMS)
 
     def configure_optimizers(self):
@@ -161,7 +164,7 @@ class BaseTrainerModel(pl.LightningModule):
             )
 
     def should_prune(self, value):
-        if self.trial is not None:
+        if self.trial is not None and self.enable_trial_pruning:
             self.trial.report(value, self.global_step)
             if self.trial.should_prune():
                 self.logger.experiment.set_tag(self.logger.run_id, "pruned", True)
@@ -247,6 +250,7 @@ def train(
     TrainerModel: Type[BaseTrainerModel],
     is_hptuning: bool = False,
     trial: Optional[Trial] = None,
+    enable_trial_pruning: bool = False,
     **trainer_model_args,
 ) -> Tuple[float, pl.Trainer]:
     if args.run_name is None:
@@ -277,7 +281,11 @@ def train(
     mlflow_exception_callback = MLFlowExceptionCallback()
 
     trainer_model = TrainerModel(
-        is_hptuning=is_hptuning, trial=trial, **trainer_model_args, **args
+        is_hptuning=is_hptuning,
+        trial=trial,
+        enable_trial_pruning=enable_trial_pruning,
+        **trainer_model_args,
+        **args,
     )
 
     trainer = pl.Trainer(

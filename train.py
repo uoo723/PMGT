@@ -231,7 +231,11 @@ def train_pmgt(ctx: click.core.Context, **args):
 
 
 def train_model(
-    train_name, is_hptuning: bool = False, trial: Optional[Trial] = None, **args
+    train_name,
+    is_hptuning: bool = False,
+    trial: Optional[Trial] = None,
+    enable_trial_pruning: bool = False,
+    **args
 ) -> Union[Dict[str, float], np.ndarray]:
     assert train_name in ["ncf", "pmgt"]
 
@@ -253,7 +257,12 @@ def train_model(
 
     pl_trainer = None
     if args.mode == "train":
-        _, pl_trainer = trainer.train(args, is_hptuning=is_hptuning, trial=trial)
+        _, pl_trainer = trainer.train(
+            args,
+            is_hptuning=is_hptuning,
+            trial=trial,
+            enable_trial_pruning=enable_trial_pruning,
+        )
 
     if args.mode == "eval":
         logger.info("Eval mode")
