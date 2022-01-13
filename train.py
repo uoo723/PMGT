@@ -133,7 +133,6 @@ def add_options(options):
     help="freeze item init embedding affected only if item-init-emb-path is set",
 )
 @click.pass_context
-@log_elapsed_time
 def train_ncf(ctx: click.core.Context, **args):
     """Train for NCF"""
     if ctx.obj["save_args"] is not None:
@@ -145,7 +144,6 @@ def train_ncf(ctx: click.core.Context, **args):
 @cli.command(context_settings={"show_default": True})
 @click.option("--b", type=click.FLOAT, default=0.4)
 @click.pass_context
-@log_elapsed_time
 def train_dcn(ctx: click.core.Context, **args):
     """Train for DCN"""
     if ctx.obj["save_args"] is not None:
@@ -221,7 +219,6 @@ def train_dcn(ctx: click.core.Context, **args):
     help="PMGT mask node ratio",
 )
 @click.pass_context
-@log_elapsed_time
 def train_pmgt(ctx: click.core.Context, **args):
     """Train for PMGT"""
     if ctx.obj["save_args"] is not None:
@@ -230,6 +227,7 @@ def train_pmgt(ctx: click.core.Context, **args):
     train_model("pmgt", **args)
 
 
+@log_elapsed_time
 def train_model(
     train_name,
     is_hptuning: bool = False,
