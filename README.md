@@ -83,6 +83,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.13]  
+  - PMGT pre-training 진행  
+
 [2022.01.12]  
   - PMGT training 구현 ([pmgt/pmgt/trainer.py](pmgt/pmgt/trainer.py))  
 
