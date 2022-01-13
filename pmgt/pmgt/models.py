@@ -92,7 +92,7 @@ class PMGT(PMGTPretrainedModel):
 
         bert_outputs = self.bert(
             *input_feat_embeds,
-            attention_mask=target_node_inputs["node_ids"],
+            attention_mask=target_node_inputs["attention_mask"],
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
