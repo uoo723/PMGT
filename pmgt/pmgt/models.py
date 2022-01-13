@@ -2,7 +2,7 @@
 Created on 2022/01/08
 @author Sangwoo Han
 """
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -16,6 +16,7 @@ from .modeling_pmgt import (
     PMGTNodeConstructLoss,
     PMGTPretrainedModel,
 )
+from .utils import get_input_feat_embeds
 
 
 class PMGT(PMGTPretrainedModel):
@@ -52,15 +53,6 @@ class PMGT(PMGTPretrainedModel):
                     feat_embeddings.weight.copy_(torch.from_numpy(weights))
                 feat_embeddings.requires_grad_(False)
 
-    def _get_input_feat_embeds(
-        self, node_ids: torch.LongTensor
-    ) -> Tuple[torch.FloatTensor]:
-        input_feat_embeds = [
-            feat_embeddings(node_ids) for feat_embeddings in self.feat_embeddings
-        ]
-
-        return input_feat_embeds
-
     def forward(
         self,
         target_node_inputs: Dict[str, torch.Tensor],
@@ -94,7 +86,9 @@ class PMGT(PMGTPretrainedModel):
         )
 
         device = target_node_inputs["node_ids"].device
-        input_feat_embeds = self._get_input_feat_embeds(target_node_inputs["node_ids"])
+        input_feat_embeds = get_input_feat_embeds(
+            target_node_inputs["node_ids"], self.feat_embeddings
+        )
 
         bert_outputs = self.bert(
             *input_feat_embeds,
@@ -117,7 +111,9 @@ class PMGT(PMGTPretrainedModel):
             for i, num in enumerate(num_pairs):
                 be = bs + num.item()
                 pair_outputs = self.bert(
-                    *self._get_input_feat_embeds(pair_node_inputs["node_ids"][bs:be]),
+                    *get_input_feat_embeds(
+                        pair_node_inputs["node_ids"][bs:be], self.feat_embeddings
+                    ),
                     attention_mask=pair_node_inputs["attention_mask"][bs:be],
                 )[0]
                 loss, logits = self.gsr_loss(
@@ -155,12 +151,12 @@ class PMGT(PMGTPretrainedModel):
                 masked_input_ids[:, 1:][mask] = 1  # Fill mask index
 
                 masked_outputs = self.bert(
-                    *self._get_input_feat_embeds(masked_input_ids),
+                    *get_input_feat_embeds(masked_input_ids, self.feat_embeddings),
                     attention_mask=target_node_inputs["attention_mask"],
                 )[0]
 
                 masked_outputs = masked_outputs[:, 1:][mask]
-                target_embeds = self._get_input_feat_embeds(target_idx)
+                target_embeds = get_input_feat_embeds(target_idx, self.feat_embeddings)
 
                 nfr_loss = self.nfr_loss(masked_outputs, target_embeds)
                 ###########################################################################

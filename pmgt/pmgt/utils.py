@@ -2,8 +2,12 @@
 Created on 2022/01/06
 @author Sangwoo Han
 """
+from typing import Tuple
+
 import joblib
 import numpy as np
+import torch
+import torch.nn as nn
 from sklearn.preprocessing import MultiLabelBinarizer
 
 
@@ -27,3 +31,13 @@ def load_node_init_emb(
             item_emb_init[i] = np.random.normal(size=node_emb_init.shape[1])
 
     return item_emb_init
+
+
+def get_input_feat_embeds(
+    node_ids: torch.LongTensor, feat_embeddings_list: nn.ModuleList
+) -> Tuple[torch.FloatTensor]:
+    input_feat_embeds = [
+        feat_embeddings(node_ids) for feat_embeddings in feat_embeddings_list
+    ]
+
+    return input_feat_embeds
