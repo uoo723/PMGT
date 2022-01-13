@@ -6,13 +6,16 @@ dropout:
   type: float
   step: 0.1
   value: [0.0, 0.6]
+  round: 1
 
 emb_dropout:
   type: float
   step: 0.1
   value: [0.0, 0.6]
+  round: 1
 
 alpha:
   type: float
   step: 0.1
   value: [0.3, 0.7]
+  round: 1

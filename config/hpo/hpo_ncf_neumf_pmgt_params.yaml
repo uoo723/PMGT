@@ -10,16 +10,19 @@ dropout:
   type: float
   step: 0.1
   value: [0.0, 0.6]
+  round: 1
 
 emb_dropout:
   type: float
   step: 0.1
   value: [0.0, 0.6]
+  round: 1
 
 alpha:
   type: float
   step: 0.1
   value: [0.1, 0.9]
+  round: 1
 
 freeze_item_init_emb:
   type: categorical

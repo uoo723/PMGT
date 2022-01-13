@@ -36,6 +36,8 @@ def _get_hp_params(trial: Trial, hp_params: Dict):
             p[key] = trial.suggest_float(
                 key, *value["value"], step=value.get("step", None)
             )
+            if "round" in value:
+                p[key] = round(p[key], value["round"])
         elif value["type"] == "int":
             p[key] = trial.suggest_int(key, *value["value"])
     return p
