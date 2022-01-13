@@ -23,6 +23,7 @@ _common_options = [
     click.option("--dataset-name", type=click.STRING, required=True, help="dataset name"),
     click.option("--valid-size", default=0.2, help="validation dataset size"),
     click.option("--num-epochs", type=click.INT, default=20, help="training epochs"),
+    click.option('--optim', type=click.Choice(["adamw", "sgd"]), default="adamw", help="optimizer"),
     click.option("--lr", type=click.FLOAT, default=1e-3, help="learning rate"),
     click.option("--decay", type=click.FLOAT, default=1e-2, help="Weight decay"),
     click.option("--no-cuda", is_flag=True, default=False, help="Disable cuda"),

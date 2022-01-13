@@ -12,6 +12,7 @@ import pytorch_lightning.loggers as pl_loggers
 import torch
 import torch.cuda
 import torch.nn as nn
+import torch.optim
 from attrdict import AttrDict
 from logzero import logger
 from mlflow.entities import Run
@@ -53,7 +54,14 @@ def get_optimizer(args: AttrDict) -> Optimizer:
         },
     ]
 
-    return DenseSparseAdamW(param_groups)
+    if args.optim == "adamw":
+        optim = DenseSparseAdamW(param_groups)
+    elif args.optim == "sgd":
+        optim = torch.optim.SGD(param_groups)
+    else:
+        raise ValueError(f"Optimizer {args.optim} is not supported")
+
+    return optim
 
 
 def get_scheduler(args: AttrDict, optimizer: Optimizer) -> Optional[_LRScheduler]:
