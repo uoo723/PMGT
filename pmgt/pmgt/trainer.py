@@ -199,11 +199,7 @@ class PMGTTrainerModel(BaseTrainerModel):
         self, outputs: Tuple[List[np.ndarray], List[np.ndarray]]
     ) -> None:
         results = self._valid_and_test_epoch_end(outputs, "val/auc")
-
-        if self.trial is not None:
-            self.trial.report(results["val/auc"], self.global_step)
-            if self.trial.should_prune():
-                raise optuna.TrialPruned()
+        self.should_prune(results["val/auc"])
 
     def test_epoch_end(
         self, outputs: Tuple[List[np.ndarray], List[np.ndarray]]

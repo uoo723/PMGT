@@ -6,6 +6,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
+import optuna
 import pytorch_lightning as pl
 import pytorch_lightning.loggers as pl_loggers
 import torch
@@ -158,6 +159,13 @@ class BaseTrainerModel(pl.LightningModule):
             self.logger.experiment.log_artifact(
                 self.logger.run_id, self.args.run_script, "scripts"
             )
+
+    def should_prune(self, value):
+        if self.trial is not None:
+            self.trial.report(value, self.global_step)
+            if self.trial.should_prune():
+                self.logger.experiment.set_tag(self.logger.run_id, "pruned", True)
+                raise optuna.TrialPruned()
 
 
 def init_run(args: AttrDict) -> None:

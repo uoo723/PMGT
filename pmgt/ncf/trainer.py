@@ -223,13 +223,7 @@ class NCFTrainerModel(BaseTrainerModel):
         results = {"val/n20": n20, "val/r20": r20}
 
         self.log_dict(results, prog_bar=True)
-
-        if self.trial is not None:
-            self.trial.report(
-                results["val/" + self.args.early_criterion], self.global_step
-            )
-            if self.trial.should_prune():
-                raise optuna.TrialPruned()
+        self.should_prune(results["val/" + self.args.early_criterion])
 
     def test_epoch_end(self, outputs: List[np.ndarray]) -> None:
         predictions = np.concatenate(outputs)
