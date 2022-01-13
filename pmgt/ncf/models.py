@@ -62,8 +62,8 @@ class NCF(nn.Module):
         MLP_modules = []
         for i in range(num_layers):
             input_size = factor_num * (2 ** (num_layers - i))
-            MLP_modules.append(nn.Dropout(p=self.dropout))
             MLP_modules.append(nn.Linear(input_size, input_size // 2))
+            MLP_modules.append(nn.Dropout(p=self.dropout))
             MLP_modules.append(nn.ReLU())
         self.MLP_layers = nn.Sequential(*MLP_modules)
 
