@@ -29,10 +29,7 @@ class MLFlowExceptionCallback(Callback):
     ) -> None:
         logger = pl_module.logger
         if logger.experiment.get_run(logger.run_id):
-            status = (
-                "FINISHED" if isinstance(exception, optuna.TrialPruned) else "FAILED"
-            )
-            logger.experiment.set_terminated(logger.run_id, status=status)
+            logger.experiment.set_terminated(logger.run_id, status="FAILED")
 
     def on_test_start(
         self,
