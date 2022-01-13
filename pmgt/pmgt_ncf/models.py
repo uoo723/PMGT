@@ -21,12 +21,16 @@ class PMGT_NCF(PMGTPretrainedModel):
         num_layers: int = 3,
         emb_dropout: float = 0.0,
         dropout: float = 0.0,
+        model: str = "MLP",
         config: PMGTConfig = PMGTConfig(),
     ) -> None:
         super().__init__(config)
 
+        assert model in ["MLP", "NeuMF-end"]
+
         self.factor_num = factor_num
         self.num_layers = num_layers
+        self.model = model
 
         self.bert = PMGTModel(config)
         self.feat_embeddings = nn.ModuleList(
@@ -43,9 +47,10 @@ class PMGT_NCF(PMGTPretrainedModel):
             feat_embeddings.requires_grad_(False)
 
         # NCF Part
-        self.user_embeddings = nn.Embedding(
+        self.mlp_user_embeddings = nn.Embedding(
             user_num, factor_num * (2 ** (num_layers - 1))
         )
+
         self.emb_dropout = nn.Dropout(emb_dropout)
         self.mlp_layers = nn.Sequential(
             *[
@@ -57,7 +62,15 @@ class PMGT_NCF(PMGTPretrainedModel):
                 for i in range(num_layers)
             ]
         )
-        self.predict_layer = nn.Linear(factor_num, 1)
+
+        if self.model == "NeuMF-end":
+            self.gmf_user_embeddings = nn.Embedding(user_num, factor_num)
+            self.gmf_item_embeddings = nn.Embedding(item_num, factor_num)
+            self.predict_layer = nn.Linear(factor_num * 2, 1)
+        else:
+            self.register_parameter("gmf_user_embeddings", None)
+            self.register_parameter("gmf_item_embeddings", None)
+            self.predict_layer = nn.Linear(factor_num, 1)
 
     def _get_input_size(self, i: int) -> int:
         return self.factor_num * 2 ** (self.num_layers - i)
@@ -65,7 +78,8 @@ class PMGT_NCF(PMGTPretrainedModel):
     def forward(
         self, user: torch.LongTensor, item: Dict[str, torch.Tensor]
     ) -> torch.FloatTensor:
-        user_embeds = self.user_embeddings(user)
+        mlp_user_embeds = self.mlp_user_embeddings(user)
+
         input_feat_embeds = get_input_feat_embeds(
             item["node_ids"], self.feat_embeddings
         )
@@ -74,9 +88,18 @@ class PMGT_NCF(PMGTPretrainedModel):
             attention_mask=item["attention_mask"],
         )[0][:, 0]
 
-        interaction = torch.cat([user_embeds, item_embeds], dim=-1)
+        interaction = torch.cat([mlp_user_embeds, item_embeds], dim=-1)
         interaction = self.emb_dropout(interaction)
-        outputs = self.mlp_layers(interaction)
+        mlp_outputs = self.mlp_layers(interaction)
+
+        if self.model == "NeuMF-end":
+            gmf_user_embeds = self.gmf_user_embeddings(user)
+            gmf_item_embeds = self.gmf_item_embeddings(item["node_ids"][:, 0] - 2)
+            gmf_outputs = gmf_user_embeds * gmf_item_embeds
+            gmf_outputs = self.emb_dropout(gmf_outputs)
+            outputs = torch.cat([gmf_outputs, mlp_outputs], dim=-1)
+        else:
+            outputs = mlp_outputs
 
         logits: torch.FloatTensor = self.predict_layer(outputs)
         return logits.view(-1)
