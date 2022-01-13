@@ -300,9 +300,16 @@ def train(
         if args.run_id
         else None
     )
-    trainer.fit(
-        trainer_model, args.train_dataloader, args.valid_dataloader, ckpt_path=ckpt_path
-    )
+
+    try:
+        trainer.fit(
+            trainer_model,
+            args.train_dataloader,
+            args.valid_dataloader,
+            ckpt_path=ckpt_path,
+        )
+    except optuna.TrialPruned:
+        pass
 
     args.eval_ckpt_path = checkpoint_callback.best_model_path
 

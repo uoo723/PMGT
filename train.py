@@ -6,7 +6,6 @@ from typing import Dict, Optional, Union
 
 import click
 import numpy as np
-import optuna
 from attrdict import AttrDict
 from logzero import logger
 from optuna import Trial
@@ -254,10 +253,7 @@ def train_model(
 
     pl_trainer = None
     if args.mode == "train":
-        try:
-            _, pl_trainer = trainer.train(args, is_hptuning=is_hptuning, trial=trial)
-        except optuna.TrialPruned:
-            pass
+        _, pl_trainer = trainer.train(args, is_hptuning=is_hptuning, trial=trial)
 
     if args.mode == "eval":
         logger.info("Eval mode")
