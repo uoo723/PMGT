@@ -2,6 +2,18 @@ lr:
   type: categorical
   value: [1e-4, 5e-4, 1e-3, 5e-3]
 
+decay:
+  type: categorical
+  value: [0.0, 1e-4, 1e-3, 1e-2]
+
 factor_num:
   type: categorical
   value: [8, 16, 32, 64]
+
+train_batch_size:
+  type: categorical
+  value: [32, 64, 128, 256]
+
+seed:
+  type: categorical
+  value: [0, 1, 2, 3, 4]
