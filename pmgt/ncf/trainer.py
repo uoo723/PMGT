@@ -136,11 +136,16 @@ def _load_pretrained_model(
 
 
 def _get_model(args: AttrDict) -> nn.Module:
-    if args.model_name == "NeuMF-pre":
-        GMF_model = _load_pretrained_model(args.log_dir, args.gmf_run_id)
-        MLP_model = _load_pretrained_model(args.log_dir, args.mlp_run_id)
-    else:
-        GMF_model = MLP_model = None
+    GMF_model = (
+        _load_pretrained_model(args.log_dir, args.gmf_run_id)
+        if args.gmf_run_id is not None
+        else None
+    )
+    MLP_model = (
+        _load_pretrained_model(args.log_dir, args.mlp_run_id)
+        if args.mlp_run_id is not None
+        else None
+    )
 
     if args.run_id is not None:
         model = _load_pretrained_model(args.log_dir, args.run_id, GMF_model, MLP_model)

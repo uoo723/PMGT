@@ -81,26 +81,18 @@ class NCF(nn.Module):
 
     def _init_weight(self) -> None:
         """We leave the weights initialization here."""
-        if not self.model == "NeuMF-pre":
-            nn.init.normal_(self.embed_user_GMF.weight, std=0.01)
-            nn.init.normal_(self.embed_user_MLP.weight, std=0.01)
-            nn.init.normal_(self.embed_item_GMF.weight, std=0.01)
-            nn.init.normal_(self.embed_item_MLP.weight, std=0.01)
+        for m in self.modules():
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                m.bias.data.zero_()
 
-            for m in self.MLP_layers:
-                if isinstance(m, nn.Linear):
-                    nn.init.xavier_uniform_(m.weight)
-            nn.init.kaiming_uniform_(
-                self.predict_layer.weight, a=1, nonlinearity="sigmoid"
-            )
-
-            for m in self.modules():
-                if isinstance(m, nn.Linear) and m.bias is not None:
-                    m.bias.data.zero_()
-        else:
-            # embedding layers
+        if self.GMF_model is not None:
             self.embed_user_GMF.weight.data.copy_(self.GMF_model.embed_user_GMF.weight)
             self.embed_item_GMF.weight.data.copy_(self.GMF_model.embed_item_GMF.weight)
+        else:
+            nn.init.normal_(self.embed_user_GMF.weight, std=0.01)
+            nn.init.normal_(self.embed_item_GMF.weight, std=0.01)
+
+        if self.MLP_model is not None:
             self.embed_user_MLP.weight.data.copy_(self.MLP_model.embed_user_MLP.weight)
             self.embed_item_MLP.weight.data.copy_(self.MLP_model.embed_item_MLP.weight)
 
@@ -109,7 +101,14 @@ class NCF(nn.Module):
                 if isinstance(m1, nn.Linear) and isinstance(m2, nn.Linear):
                     m1.weight.data.copy_(m2.weight)
                     m1.bias.data.copy_(m2.bias)
+        else:
+            nn.init.normal_(self.embed_user_MLP.weight, std=0.01)
+            nn.init.normal_(self.embed_item_MLP.weight, std=0.01)
+            for m in self.MLP_layers:
+                if isinstance(m, nn.Linear):
+                    nn.init.xavier_uniform_(m.weight)
 
+        if self.GMF_model is not None and self.MLP_model is not None:
             # predict layers
             predict_weight = torch.cat(
                 [
@@ -125,6 +124,10 @@ class NCF(nn.Module):
 
             self.predict_layer.weight.data.copy_(predict_weight)
             self.predict_layer.bias.data.copy_(precit_bias)
+        else:
+            nn.init.kaiming_uniform_(
+                self.predict_layer.weight, a=1, nonlinearity="sigmoid"
+            )
 
     def forward(self, inputs: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         user, item = inputs
