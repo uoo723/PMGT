@@ -83,6 +83,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Log
 
+[2022.01.14]  
+  - NeuMF-PMGT 실험 진행  
+
 [2022.01.13]  
   - PMGT pre-training 진행  
 
