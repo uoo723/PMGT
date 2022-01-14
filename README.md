@@ -23,7 +23,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.0989</td>
     <td>0.0987</td>
     <td>0.0992</td>
-    <td></td>
+    <td>0.0991</td>
   </tr>
   <tr>
     <td>N@20</td>
@@ -31,7 +31,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.1256</td>
     <td>0.1251</td>
     <td>0.1254</td>
-    <td></td>
+    <td>0.1258</td>
   </tr>
   <tr>
     <td>R@10</td>
@@ -39,7 +39,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.1523</td>
     <td>0.1524</td>
     <td>0.1531</td>
-    <td></td>
+    <td>0.1529</td>
   </tr>
   <tr>
     <td>R@20</td>
@@ -47,7 +47,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.2277</td>
     <td>0.2332</td>
     <td>0.2340</td>
-    <td></td>
+    <td>0.2354</td>
   </tr>
 </table>
 
