@@ -139,7 +139,7 @@ def add_options(options):
 @click.option(
     "--normalize-item-init-emb",
     is_flag=True,
-    default=True,
+    default=False,
     help="normalize item init embedding",
 )
 @click.pass_context
