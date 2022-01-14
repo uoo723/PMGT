@@ -33,6 +33,7 @@ class NCF(nn.Module):
         num_layers: int = 3,
         emb_dropout: float = 0.0,
         dropout: float = 0.0,
+        layer_norm_eps: float = 1e-12,
         model: str = "NeuMF-end",
         GMF_model: Optional[NCF] = None,
         MLP_model: Optional[NCF] = None,
@@ -64,6 +65,7 @@ class NCF(nn.Module):
             input_size = factor_num * (2 ** (num_layers - i))
             MLP_modules.append(nn.Linear(input_size, input_size // 2))
             MLP_modules.append(nn.Dropout(p=self.dropout))
+            MLP_modules.append(nn.LayerNorm(input_size // 2, eps=layer_norm_eps))
             MLP_modules.append(nn.ReLU())
         self.MLP_layers = nn.Sequential(*MLP_modules)
 

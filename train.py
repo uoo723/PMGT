@@ -91,6 +91,9 @@ def add_options(options):
 )
 @click.option("--dropout", type=click.FLOAT, default=0.0, help="dropout rate")
 @click.option(
+    "--layer-norm-eps", type=click.FLOAT, default=1e-12, help="layer norm eps"
+)
+@click.option(
     "--alpha",
     type=click.FLOAT,
     default=0.5,

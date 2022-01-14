@@ -114,13 +114,14 @@ def _load_pretrained_model(
 
     ckpt = torch.load(ckpt_path, map_location="cpu")
     model = NCF(
-        int(params.num_user),
-        int(params.num_item),
-        int(params.factor_num),
-        int(params.num_layers),
-        float(getattr(params, "emb_dropout", 0.0)),
-        float(params.dropout),
-        params.model_name,
+        user_num=int(params.num_user),
+        item_num=int(params.num_item),
+        factor_num=int(params.factor_num),
+        num_layers=int(params.num_layers),
+        emb_dropout=float(getattr(params, "emb_dropout", 0.0)),
+        dropout=float(params.dropout),
+        layer_norm_eps=float(getattr(params, "layer_norm_eps", 1e-12)),
+        model=params.model_name,
         GMF_model=GMF_model,
         MLP_model=MLP_model,
     )
@@ -149,6 +150,7 @@ def _get_model(args: AttrDict) -> nn.Module:
             args.num_layers,
             args.emb_dropout,
             args.dropout,
+            args.layer_norm_eps,
             args.model_name,
             GMF_model=GMF_model,
             MLP_model=MLP_model,
