@@ -82,7 +82,7 @@ def _max_trial_callback(study: Study, trial: Trial, n_trials: int) -> None:
         [
             t
             for t in study.trials
-            if t.state in [TrialState.COMPLETE, TrialState.RUNNING, TrialState.PRUNED]
+            if t.state in [TrialState.COMPLETE, TrialState.RUNNING]
         ]
     )
     if n_complete >= n_trials:
