@@ -93,6 +93,7 @@ def add_options(options):
 @click.option(
     "--layer-norm-eps", type=click.FLOAT, default=1e-12, help="layer norm eps"
 )
+@click.option("--use-layer-norm", is_flag=True, default=False, help="Use Layer Norm")
 @click.option(
     "--alpha",
     type=click.FLOAT,
