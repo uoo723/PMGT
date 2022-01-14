@@ -39,6 +39,11 @@ def _suggest_value(trial: Trial, key: str, value: Dict[str, Any]) -> Any:
         return value["value"]
 
 
+def _should_prune(cond_dict: Dict[str, Any]):
+    if "prune" in cond_dict and cond_dict["prune"]:
+        raise optuna.TrialPruned()
+
+
 def _get_hp_params(trial: Trial, hp_params: Dict) -> Dict[str, Any]:
     p = {}
     for key, value in hp_params.items():
@@ -46,20 +51,28 @@ def _get_hp_params(trial: Trial, hp_params: Dict) -> Dict[str, Any]:
         if "cond" in value:
             for cond in value["cond"]:
                 if cond["cond_type"] == "eq" and p[key] == cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
                 if cond["cond_type"] == "neq" and p[key] != cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "gt" and [key] > cond["cond_value"]:
+                elif cond["cond_type"] == "gt" and p[key] > cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "gte" and [key] >= cond["cond_value"]:
+                elif cond["cond_type"] == "gte" and p[key] >= cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "lt" and [key] < cond["cond_value"]:
+                elif cond["cond_type"] == "lt" and p[key] < cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "lte" and [key] <= cond["cond_value"]:
+                elif cond["cond_type"] == "lte" and p[key] <= cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "in" and [key] in cond["cond_value"]:
+                elif cond["cond_type"] == "in" and p[key] in cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
-                elif cond["cond_type"] == "nin" and [key] not in cond["cond_value"]:
+                elif cond["cond_type"] == "nin" and p[key] not in cond["cond_value"]:
+                    _should_prune(cond)
                     p.update(_get_hp_params(trial, cond["cond_param"]))
     return p
 
