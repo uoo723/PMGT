@@ -7,7 +7,7 @@ import json
 import os
 from functools import partial
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import click
 import optuna
@@ -27,19 +27,40 @@ def _load_train_params(config_filepath: str) -> AttrDict:
         return AttrDict(json.load(f))
 
 
-def _get_hp_params(trial: Trial, hp_params: Dict):
+def _suggest_value(trial: Trial, key: str, value: Dict[str, Any]) -> Any:
+    if value["type"] == "categorical":
+        return trial.suggest_categorical(key, value["value"])
+    elif value["type"] == "float":
+        v = trial.suggest_float(key, *value["value"], step=value.get("step", None))
+        return round(v, value["round"]) if "round" in value else v
+    elif value["type"] == "int":
+        return trial.suggest_int(key, *value["value"])
+    elif value["type"] == "static":
+        return value["value"]
+
+
+def _get_hp_params(trial: Trial, hp_params: Dict) -> Dict[str, Any]:
     p = {}
     for key, value in hp_params.items():
-        if value["type"] == "categorical":
-            p[key] = trial.suggest_categorical(key, value["value"])
-        elif value["type"] == "float":
-            p[key] = trial.suggest_float(
-                key, *value["value"], step=value.get("step", None)
-            )
-            if "round" in value:
-                p[key] = round(p[key], value["round"])
-        elif value["type"] == "int":
-            p[key] = trial.suggest_int(key, *value["value"])
+        p[key] = _suggest_value(trial, key, value)
+        if "cond" in value:
+            for cond in value["cond"]:
+                if cond["cond_type"] == "eq" and p[key] == cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                if cond["cond_type"] == "neq" and p[key] != cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "gt" and [key] > cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "gte" and [key] >= cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "lt" and [key] < cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "lte" and [key] <= cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "in" and [key] in cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
+                elif cond["cond_type"] == "nin" and [key] not in cond["cond_value"]:
+                    p.update(_get_hp_params(trial, cond["cond_param"]))
     return p
 
 
