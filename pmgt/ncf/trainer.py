@@ -4,6 +4,7 @@ Created on 2022/01/08
 """
 import os
 from collections import OrderedDict
+from distutils.util import strtobool
 from typing import Dict, List, Optional, Tuple, Union
 
 import joblib
@@ -120,7 +121,7 @@ def _load_pretrained_model(
         num_layers=int(params.num_layers),
         emb_dropout=float(getattr(params, "emb_dropout", 0.0)),
         dropout=float(params.dropout),
-        use_layer_norm=bool(getattr(params, "use_layer_norm", False)),
+        use_layer_norm=bool(strtobool(getattr(params, "use_layer_norm", "False"))),
         layer_norm_eps=float(getattr(params, "layer_norm_eps", 1e-12)),
         model=params.model_name,
         GMF_model=GMF_model,
