@@ -282,7 +282,7 @@ def train(
         monitor=monitor,
         filename=f"epoch={{epoch:02d}}-{monitor.split('/')[-1]}={{{monitor}:.4f}}",
         mode=mode,
-        save_top_k=3,
+        save_top_k=1,
         auto_insert_metric_name=False,
         save_last=True,
     )
