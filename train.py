@@ -133,6 +133,12 @@ def add_options(options):
     default=False,
     help="freeze item init embedding affected only if item-init-emb-path is set",
 )
+@click.option(
+    "--normalize-item-init-emb",
+    is_flag=True,
+    default=True,
+    help="normalize item init embedding",
+)
 @click.pass_context
 def train_ncf(ctx: click.core.Context, **args):
     """Train for NCF"""

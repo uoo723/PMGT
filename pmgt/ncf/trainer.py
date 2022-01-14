@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
-import optuna
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -161,7 +160,10 @@ def _get_model(args: AttrDict) -> nn.Module:
         item_encoder_path = os.path.join(data_dir, "item_encoder")
         node_encoder_path = os.path.join(data_dir, "node_encoder")
         item_init_emb = load_node_init_emb(
-            item_encoder_path, node_encoder_path, args.item_init_emb_path
+            item_encoder_path,
+            node_encoder_path,
+            args.item_init_emb_path,
+            args.normalize_item_init_emb,
         )
         model.embed_item_MLP.weight.data.copy_(torch.from_numpy(item_init_emb))
         model.embed_item_MLP.requires_grad_(not args.freeze_item_init_emb)

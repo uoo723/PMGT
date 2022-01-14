@@ -9,28 +9,35 @@ import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import normalize as sk_normalize
 
 
 def load_node_init_emb(
-    item_encoder_path: str, node_encoder_path: str, node_init_emb_path: str
+    item_encoder_path: str,
+    node_encoder_path: str,
+    node_init_emb_path: str,
+    normalize: bool = True,
 ) -> np.ndarray:
     item_encoder: MultiLabelBinarizer = joblib.load(item_encoder_path)
     node_encoder: MultiLabelBinarizer = joblib.load(node_encoder_path)
-    node_emb_init: np.ndarray = np.load(node_init_emb_path)
+    node_init_emb: np.ndarray = np.load(node_init_emb_path)
 
     item2idx = {item: i for i, item in enumerate(node_encoder.classes_)}
 
-    item_emb_init = np.empty(
-        (len(item_encoder.classes_), node_emb_init.shape[1]), dtype=node_emb_init.dtype
+    item_init_emb = np.empty(
+        (len(item_encoder.classes_), node_init_emb.shape[1]), dtype=node_init_emb.dtype
     )
 
     for i, item in enumerate(item_encoder.classes_):
         if item in item2idx:
-            item_emb_init[i] = node_emb_init[item2idx[item]]
+            item_init_emb[i] = node_init_emb[item2idx[item]]
         else:
-            item_emb_init[i] = np.random.normal(size=node_emb_init.shape[1])
+            item_init_emb[i] = np.random.normal(size=node_init_emb.shape[1])
 
-    return item_emb_init
+    if normalize:
+        item_init_emb = sk_normalize(item_init_emb)
+
+    return item_init_emb
 
 
 def get_input_feat_embeds(

@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple
 import joblib
 import networkx as nx
 import numpy as np
-import optuna
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
