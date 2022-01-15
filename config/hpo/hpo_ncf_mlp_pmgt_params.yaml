@@ -1,0 +1,122 @@
+lr:
+  type: categorical
+  value: [1e-4, 5e-4, 1e-3, 5e-3]
+
+decay:
+  type: categorical
+  value: [0.0, 1e-4, 1e-3, 1e-2]
+
+dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.8]
+  round: 1
+
+train_batch_size:
+  type: categorical
+  value: [32, 64, 128, 256]
+
+emb_dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.8]
+  round: 1
+
+seed:
+  type: categorical
+  value: [0, 1, 2, 3, 4]
+
+factor_num:
+  type: categorical
+  value: [8, 16, 32]
+  cond:
+    - cond_type: eq
+      cond_value: 8
+      cond_param:
+        num_layers:
+          type: categorical
+          value: [2, 3, 4, 5]
+          cond:
+            - cond_type: nin
+              cond_value: [3, 4, 5]
+              prune: true
+            - cond_type: eq
+              cond_value: 3 # factor_num == 8 & num_layers == 3 => hidden_size = 32
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat4_32dim.npy
+            - cond_type: eq
+              cond_value: 4 # factor_num == 8 & num_layers == 4 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 5 # factor_num == 8 & num_layers == 5 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+    - cond_type: eq
+      cond_value: 16
+      cond_param:
+        num_layers:
+          type: categorical
+          value: [2, 3, 4, 5]
+          cond:
+            - cond_type: nin
+              cond_value: [2, 3, 4]
+              prune: true
+            - cond_type: eq
+              cond_value: 2 # factor_num == 16 & num_layers == 2 => hidden_size = 32
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat4_32dim.npy
+            - cond_type: eq
+              cond_value: 3 # factor_num == 16 & num_layers == 3 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 4 # factor_num == 16 & num_layers == 4 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+    - cond_type: eq
+      cond_value: 32
+      cond_param:
+        num_layers:
+          type: categorical
+          value: [2, 3, 4, 5]
+          cond:
+            - cond_type: nin
+              cond_value: [2, 3]
+              prune: true
+            - cond_type: eq
+              cond_value: 2 # factor_num == 32 & num_layers == 2 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 3 # factor_num == 32 & num_layers == 3 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+        gmf_run_id:
+          type: categorical
+          value: [43b392b5e92346e581167c048dcd71a4, null]
+# alpha:
+#   type: float
+#   step: 0.1
+#   value: [0.1, 0.9]
+#   round: 1
+
+# freeze_item_init_emb:
+#   type: categorical
+#   value: [true, false]
