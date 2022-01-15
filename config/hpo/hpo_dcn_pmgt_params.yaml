@@ -1,0 +1,126 @@
+lr:
+  type: categorical
+  value: [1e-4, 5e-4, 1e-3, 5e-3]
+
+decay:
+  type: categorical
+  value: [0.0, 1e-4, 1e-3, 1e-2]
+
+emb_dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.8]
+  round: 1
+
+dropout:
+  type: float
+  step: 0.1
+  value: [0.0, 0.8]
+  round: 1
+
+train_batch_size:
+  type: categorical
+  value: [32, 64, 128, 256]
+
+cross_net_num_layers:
+  type: int
+  value: [1, 6]
+
+factor_num:
+  type: categorical
+  value: [8, 16, 32, 64]
+  cond:
+    - cond_type: eq
+      cond_value: 8
+      cond_param:
+        deep_net_num_layers:
+          type: int
+          value: [1, 4]
+          cond:
+            - cond_type: nin
+              cond_value: [2, 3, 4]
+              prune: true
+            - cond_type: eq
+              cond_value: 2 # factor_num == 8 & num_layers == 2 => hidden_size = 32
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat4_32dim.npy
+            - cond_type: eq
+              cond_value: 3 # factor_num == 8 & num_layers == 3 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 4 # factor_num == 8 & num_layers == 4 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+    - cond_type: eq
+      cond_value: 16
+      cond_param:
+        deep_net_num_layers:
+          type: int
+          value: [1, 4]
+          cond:
+            - cond_type: nin
+              cond_value: [1, 2, 3]
+              prune: true
+            - cond_type: eq
+              cond_value: 1 # factor_num == 16 & num_layers == 1 => hidden_size = 32
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat4_32dim.npy
+            - cond_type: eq
+              cond_value: 2 # factor_num == 16 & num_layers == 2 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 3 # factor_num == 16 & num_layers == 3 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+    - cond_type: eq
+      cond_value: 32
+      cond_param:
+        deep_net_num_layers:
+          type: int
+          value: [1, 4]
+          cond:
+            - cond_type: nin
+              cond_value: [1, 2]
+              prune: true
+            - cond_type: eq
+              cond_value: 1 # factor_num == 32 & num_layers == 1 => hidden_size = 64
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat6_64dim.npy
+            - cond_type: eq
+              cond_value: 2 # factor_num == 32 & num_layers == 2 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy
+    - cond_type: eq
+      cond_value: 64
+      cond_param:
+        deep_net_num_layers:
+          type: int
+          value: [1, 4]
+          cond:
+            - cond_type: nin
+              cond_value: [1]
+              prune: true
+            - cond_type: eq
+              cond_value: 1 # factor_num == 64 & num_layers == 1 => hidden_size = 128
+              cond_param:
+                item_init_emb_path:
+                  type: static
+                  value: ./data/VG/node_feat5_128dim.npy

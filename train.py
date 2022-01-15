@@ -153,14 +153,71 @@ def train_ncf(ctx: click.core.Context, **args):
 
 
 @cli.command(context_settings={"show_default": True})
-@click.option("--b", type=click.FLOAT, default=0.4)
+@add_options(_common_options)
+@click.option(
+    "--emb-dropout",
+    type=click.FLOAT,
+    default=0.0,
+    help="dropout rate for embedding layer",
+)
+@click.option(
+    "--dropout", type=click.FLOAT, default=0.0, help="dropout rate in MLP layer"
+)
+@click.option(
+    "--layer-norm-eps", type=click.FLOAT, default=1e-12, help="layer norm eps"
+)
+@click.option("--use-layer-norm", is_flag=True, default=False, help="Use Layer Norm")
+@click.option(
+    "--factor-num",
+    type=click.INT,
+    default=32,
+    help="predictive factors numbers in the model",
+)
+@click.option(
+    "--deep-net-num-layers",
+    type=click.INT,
+    default=3,
+    help="number of DeepNet hidden layers",
+)
+@click.option(
+    "--cross-net-num-layers",
+    type=click.INT,
+    default=3,
+    help="number of CrossNet hidden layers",
+)
+@click.option(
+    "--num-ng", type=click.INT, default=1, help="# of negative items for training"
+)
+@click.option(
+    "--max-sample-items",
+    type=click.INT,
+    default=5,
+    help="Maximum # of items/user for testing",
+)
+@click.option(
+    "--item-init-emb-path",
+    type=click.Path(exists=True),
+    help="item init embedding path from PMGT",
+)
+@click.option(
+    "--freeze-item-init-emb",
+    is_flag=True,
+    default=False,
+    help="freeze item init embedding affected only if item-init-emb-path is set",
+)
+@click.option(
+    "--normalize-item-init-emb",
+    is_flag=True,
+    default=False,
+    help="normalize item init embedding",
+)
 @click.pass_context
 def train_dcn(ctx: click.core.Context, **args):
     """Train for DCN"""
     if ctx.obj["save_args"] is not None:
         save_args(args, ctx.obj["save_args"])
         return
-    train_dcn("dcn", **args)
+    train_model("dcn", **args)
 
 
 @cli.command(context_settings={"show_default": True})
@@ -246,7 +303,7 @@ def train_model(
     enable_trial_pruning: bool = False,
     **args
 ) -> Union[Dict[str, float], np.ndarray]:
-    assert train_name in ["ncf", "pmgt"]
+    assert train_name in ["ncf", "pmgt", "dcn"]
 
     args = AttrDict(args)
 
@@ -254,6 +311,8 @@ def train_model(
         import pmgt.ncf.trainer as trainer
     elif train_name == "pmgt":
         import pmgt.pmgt.trainer as trainer
+    elif train_name == "dcn":
+        import pmgt.dcn.trainer as trainer
 
     trainer.check_args(args)
     trainer.init_run(args)
