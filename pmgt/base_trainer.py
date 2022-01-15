@@ -312,7 +312,7 @@ def train(
     )
 
     ckpt_path = (
-        get_ckpt_path(args.log_dir, args.run_id, args.load_best)
+        get_ckpt_path(args.log_dir, args.run_id, False)
         if args.run_id
         else None
     )
