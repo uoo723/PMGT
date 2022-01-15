@@ -28,6 +28,10 @@ from .optimizers import DenseSparseAdamW
 from .utils import set_seed
 
 
+def _get_gpu_info(num_gpus: int) -> List[str]:
+    return [f"{i}: {torch.cuda.get_device_name(i)}" for i in range(num_gpus)]
+
+
 def get_optimizer(args: AttrDict) -> Optimizer:
     model: nn.Module = args.model
 
@@ -171,6 +175,12 @@ class BaseTrainerModel(pl.LightningModule):
                 self.logger.run_id, self.args.run_script, "scripts"
             )
 
+        if self.args.num_gpus >= 1 and not self.args.no_cuda:
+            gpu_info = _get_gpu_info(self.args.num_gpus)
+            self.logger.experiment.set_tag(
+                self.logger.run_id, "GPU info", ", ".join(gpu_info)
+            )
+
     def should_prune(self, value):
         if self.trial is not None and self.enable_trial_pruning:
             self.trial.report(value, self.global_step)
@@ -245,9 +255,7 @@ def init_model(args: AttrDict, get_model: Callable) -> None:
         logger.info("CPU mode")
 
     if args.num_gpus >= 1 and not args.no_cuda:
-        gpu_info = [
-            f"{i}: {torch.cuda.get_device_name(i)}" for i in range(args.num_gpus)
-        ]
+        gpu_info = _get_gpu_info(args.num_gpus)
         logger.info("GPU info - " + " ".join(gpu_info))
 
     args.model = model
@@ -311,11 +319,7 @@ def train(
         logger=mlf_logger,
     )
 
-    ckpt_path = (
-        get_ckpt_path(args.log_dir, args.run_id, False)
-        if args.run_id
-        else None
-    )
+    ckpt_path = get_ckpt_path(args.log_dir, args.run_id, False) if args.run_id else None
 
     try:
         trainer.fit(
