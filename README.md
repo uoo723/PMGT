@@ -136,7 +136,8 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 [2022.01.15]  
   - Validation & test set 버그 수정 [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  
-  - NeuMF-end & NeuMF-PMGT 재실험  
+  - NeuMF-end & NeuMF-PMGT 재실험
+  - DCN 모델 구현
 
 [2022.01.14]  
   - NeuMF-PMGT 실험 진행  
