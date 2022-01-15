@@ -198,6 +198,8 @@ class DCNTrainerModel(BaseTrainerModel):
         )
 
         predictions = np.concatenate(outputs)
+        predictions[np.isnan(predictions)] = 0
+
         gt = dataset.gt
 
         auc = (
