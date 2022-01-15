@@ -12,9 +12,10 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>Metrics</td>
     <td>GMF</td>
     <td>MLP</td>
-    <td>NeuMF-end</td>
-    <td>NeuMF-pre</td>
+    <td>NeuMF</td>
     <td>NeuMF-PMGT</td>
+    <td>DCN</td>
+    <td>DCN-PMGT</td>
   </tr>
   <tr>
     <td rowspan="8">VG</td>
@@ -24,48 +25,36 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.1426</td>
     <td>0.0972</td>
     <td>0.1621</td>
-    <td>-</td>
     <td>0.1810</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>N@20</td>
     <td>0.1602</td>
     <td>0.1209</td>
     <td>0.1815</td>
-    <td>-</td>
     <td>0.2067</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>R@10</td>
     <td>0.2057</td>
     <td>0.1724</td>
     <td>0.2365</td>
-    <td>-</td>
     <td>0.2748</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>R@20</td>
     <td>0.2687</td>
     <td>0.2592</td>
     <td>0.3060</td>
-    <td>-</td>
     <td>0.3661</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Metrics</td>
-    <td>DCN</td>
     <td>-</td>
     <td>-</td>
-    <td>-</td>
-    <td>DCN-PMGT</td>
   </tr>
   <tr>
     <td>AUC</td>
@@ -73,7 +62,8 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>-</td>
     <td>-</td>
     <td>-</td>
-    <td>-</td>
+    <td>0.8162</td>
+    <td>0.8667</td>
   </tr>
 </table>
 
