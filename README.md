@@ -4,6 +4,8 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Experiments
 
+- 버그 수정 후 재실험 결과
+
 <table>
   <tr>
     <td>Datasets</td>
