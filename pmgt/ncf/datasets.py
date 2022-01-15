@@ -66,17 +66,14 @@ class NCFDataset(torch.utils.data.Dataset):
         mat = self.user_item_mat.tocsr()
         indices = self.users.argsort()
         users = self.users[indices]
-        items = self.items[indices]
-        item_nums = mat[np.unique(self.users[indices])].sum(axis=-1, dtype=np.int32).A1
 
-        s = 0
         test_data = []
         gt = []
-        for i, num in enumerate(item_nums):
-            e = s + num
-            test_data.append((users[i], items[s:e].tolist()))
-            gt.append(items[s:e].copy())
-            s = e
+
+        for u in np.unique(users):
+            items = mat[u].indices
+            test_data.append((u, items.tolist()))
+            gt.append(items.copy())
 
         self._mlb = MultiLabelBinarizer(
             sparse_output=True, classes=np.arange(self.num_item)
