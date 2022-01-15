@@ -19,6 +19,55 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
   </tr>
   <tr>
     <td>N@10</td>
+    <td>-</td>
+    <td>-</td>
+    <td>0.1621</td>
+    <td>-</td>
+    <td>0.1810</td>
+  </tr>
+  <tr>
+    <td>N@20</td>
+    <td>-</td>
+    <td>-</td>
+    <td>0.1815</td>
+    <td>-</td>
+    <td>0.2067</td>
+  </tr>
+  <tr>
+    <td>R@10</td>
+    <td>-</td>
+    <td>-</td>
+    <td>0.2365</td>
+    <td>-</td>
+    <td>0.2748</td>
+  </tr>
+  <tr>
+    <td>R@20</td>
+    <td>-</td>
+    <td>-</td>
+    <td>0.3060</td>
+    <td>-</td>
+    <td>0.3661</td>
+  </tr>
+</table>
+
+- Deprecated (Validation & test set 버그)
+
+<table>
+  <tr>
+    <td>Datasets</td>
+    <td>Metrics</td>
+    <td>GMF</td>
+    <td>MLP</td>
+    <td>NeuMF-end</td>
+    <td>NeuMF-pre</td>
+    <td>NeuMF-PMGT</td>
+  </tr>
+  <tr>
+    <td rowspan="5">VG</td>
+  </tr>
+  <tr>
+    <td>N@10</td>
     <td>0.0532</td>
     <td>0.0989</td>
     <td>0.0987</td>
@@ -82,6 +131,10 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 </table>
 
 ## Log
+
+[2022.01.15]  
+  - Validation & test set 버그 수정 [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  
+  - NeuMF-end & NeuMF-PMGT 재실험  
 
 [2022.01.14]  
   - NeuMF-PMGT 실험 진행  
