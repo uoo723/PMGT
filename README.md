@@ -17,7 +17,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>NeuMF-PMGT</td>
   </tr>
   <tr>
-    <td rowspan="5">VG</td>
+    <td rowspan="8">VG</td>
   </tr>
   <tr>
     <td>N@10</td>
@@ -50,6 +50,30 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.3060</td>
     <td>-</td>
     <td>0.3661</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Metrics</td>
+    <td>DCN</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>DCN-PMGT</td>
+  </tr>
+  <tr>
+    <td>AUC</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
 </table>
 
@@ -137,7 +161,8 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 [2022.01.15]  
   - Validation & test set 버그 수정 [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  
   - NeuMF-end & NeuMF-PMGT 재실험
-  - DCN 모델 구현
+  - DCN 모델 구현 ([pmgt/dcn/models.py](pmgt/dcn/models.py))
+  - DCN training 구현 ([pmgt/dcn/trainer.py](pmgt/dcn/trainer.py))
 
 [2022.01.14]  
   - NeuMF-PMGT 실험 진행  
