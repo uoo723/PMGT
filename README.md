@@ -62,7 +62,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>-</td>
     <td>-</td>
     <td>-</td>
-    <td>0.8162</td>
+    <td>0.8178</td>
     <td>0.8667</td>
   </tr>
 </table>
