@@ -18,7 +18,7 @@
     "mp_enabled": true,
     "gradient_max_norm": 5.0,
     "num_workers": 8,
-    "experiment_name": "DCN-HPO",
+    "experiment_name": "DCN-PMGT-HPO",
     "run_name": "DCN",
     "use_layer_norm": true,
     "run_id": null,

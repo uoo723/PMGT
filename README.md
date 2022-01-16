@@ -4,12 +4,14 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 
 ## Experiments
 
-- 버그 수정 후 재실험 결과
-
 <table>
   <tr>
-    <td>Datasets</td>
-    <td>Metrics</td>
+    <td rowspan="2">Datasets</td>
+    <td rowspan="2">Metrics</td>
+    <td colspan="4">Top-N Recommendation</td>
+    <td colspan="2">CTR Prediction</td>
+  </tr>
+  <tr>
     <td>GMF</td>
     <td>MLP</td>
     <td>NeuMF</td>
@@ -18,7 +20,7 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>DCN-PMGT</td>
   </tr>
   <tr>
-    <td rowspan="8">VG</td>
+    <td rowspan="7">VG</td>
   </tr>
   <tr>
     <td>N@10</td>
@@ -65,54 +67,62 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td>0.8178</td>
     <td>0.8667</td>
   </tr>
-</table>
-
-- Deprecated (Validation & test set 버그)
-
-<table>
   <tr>
-    <td>Datasets</td>
-    <td>Metrics</td>
-    <td>GMF</td>
-    <td>MLP</td>
-    <td>NeuMF-end</td>
-    <td>NeuMF-pre</td>
-    <td>NeuMF-PMGT</td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
   </tr>
   <tr>
-    <td rowspan="5">VG</td>
+    <td rowspan="6">TG</td>
   </tr>
   <tr>
     <td>N@10</td>
-    <td>0.0532</td>
-    <td>0.0989</td>
-    <td>0.0987</td>
-    <td>0.0992</td>
-    <td>0.0991</td>
+    <td>0.1730</td>
+    <td>0.1163</td>
+    <td>0.1995</td>
+    <td>0.2192</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>N@20</td>
-    <td>0.0684</td>
-    <td>0.1256</td>
-    <td>0.1251</td>
-    <td>0.1254</td>
-    <td>0.1258</td>
+    <td>0.1837</td>
+    <td>0.1369</td>
+    <td>0.2189</td>
+    <td>0.2384</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>R@10</td>
-    <td>0.0820</td>
-    <td>0.1523</td>
-    <td>0.1524</td>
-    <td>0.1531</td>
-    <td>0.1529</td>
+    <td>0.2104</td>
+    <td>0.1828</td>
+    <td>0.2733</td>
+    <td>0.2889</td>
+    <td>-</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>R@20</td>
-    <td>0.1291</td>
-    <td>0.2277</td>
-    <td>0.2332</td>
-    <td>0.2340</td>
-    <td>0.2354</td>
+    <td>0.2497</td>
+    <td>0.2589</td>
+    <td>0.3445</td>
+    <td>0.3590</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>AUC</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>0.8387</td>
+    <td>0.8486</td>
   </tr>
 </table>
 
@@ -157,6 +167,9 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 </table>
 
 ## Log
+
+[2022.01.16]  
+  - TG 데이터셋 추가 및 실험 진행
 
 [2022.01.15]  
   - Validation & test set 버그 수정 [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  

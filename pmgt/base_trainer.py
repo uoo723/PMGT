@@ -272,7 +272,7 @@ def train(
     **trainer_model_args,
 ) -> Tuple[float, pl.Trainer]:
     if args.run_name is None:
-        run_name = f"{args.model_cnf['name']}_{args.data_cnf['name']}"
+        run_name = f"{args.model_name}_{args.dataset_name}"
     else:
         run_name = args.run_name
 

@@ -13,7 +13,3 @@ factor_num:
 train_batch_size:
   type: categorical
   value: [32, 64, 128, 256]
-
-seed:
-  type: categorical
-  value: [0, 1, 2, 3, 4]

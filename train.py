@@ -56,7 +56,7 @@ _common_options = [
         default="train",
         help="train: train and eval are executed. eval: eval only, inference: inference only",
     ),
-    click.option("--inference-result-path",type=click.Path(), help="inference results path"),
+    click.option("--inference-result-path", type=click.Path(), help="inference results path"),
     ######################################################################################################
 
     ########################################### Log Options ##############################################
