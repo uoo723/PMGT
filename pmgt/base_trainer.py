@@ -169,6 +169,7 @@ class BaseTrainerModel(pl.LightningModule):
             self.logger.experiment.set_tag(self.logger.run_id, k, v)
 
         logger.info(f"experiment: {self.args.experiment_name}")
+        logger.info(f"run_name: {self.args.run_name}")
         logger.info(f"run_id: {self.logger.run_id}")
 
         if "run_script" in self.args:
