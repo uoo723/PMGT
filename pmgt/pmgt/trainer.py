@@ -213,7 +213,7 @@ def init_run(*args, **kwargs):
 def check_args(args: AttrDict) -> None:
     early_criterion = ["loss", "auc"]
     model_name = ["PMGT"]
-    dataset_name = ["VG"]
+    dataset_name = ["VG", "TG"]
 
     base_trainer.check_args(args, early_criterion, model_name, dataset_name)
 

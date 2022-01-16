@@ -144,6 +144,16 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
     <td style="text-align:right">502</td>
     <td style="text-align:right">7,252</td>
   </tr>
+  <tr>
+    <td style="text-align:center">TG</td>
+    <td style="text-align:right">134,697</td>
+    <td style="text-align:right">10,337</td>
+    <td style="text-align:right">378,138</td>
+    <td style="text-align:right">10,834</td>
+    <td style="text-align:right">38,252</td>
+    <td style="text-align:right">1,279</td>
+    <td style="text-align:right">10,834</td>
+  </tr>
 </table>
 
 ## Log
