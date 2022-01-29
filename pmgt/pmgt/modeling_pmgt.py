@@ -176,7 +176,7 @@ class PMGTEmbeddings(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         self.register_buffer(
-            "postition_ids",
+            "position_ids",
             torch.arange(config.max_position_embeddings).unsqueeze(0),
         )
         self.register_buffer(
@@ -189,7 +189,7 @@ class PMGTEmbeddings(nn.Module):
     def forward(self, *input_feat_embeds):
         seq_len = input_feat_embeds[0].size(1)
 
-        position_ids = self.postition_ids[:, :seq_len]
+        position_ids = self.position_ids[:, :seq_len]
         role_ids = self.role_ids[:, :seq_len]
 
         feat_embeds = [
