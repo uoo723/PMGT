@@ -169,53 +169,53 @@ Implementation of "[Pre-training Graph Transformer with Multimodal Side Informat
 ## Log
 
 [2022.01.16]  
-  - TG 데이터셋 추가 및 실험 진행
+  - Add TG dataset & experiment
 
 [2022.01.15]  
-  - Validation & test set 버그 수정 [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  
-  - NeuMF-end & NeuMF-PMGT 재실험
-  - DCN 모델 구현 ([pmgt/dcn/models.py](pmgt/dcn/models.py))
-  - DCN training 구현 ([pmgt/dcn/trainer.py](pmgt/dcn/trainer.py))
+  - Fixed bug for Validation & test set [diff](https://github.com/uoo723/PMGT/commit/3f55ba1715d9ba74790ed5d2b7bffcf45b50ddb1)  
+  - Re-experiment for NeuMF-end & NeuMF-PMGT
+  - Implement DCN ([pmgt/dcn/models.py](pmgt/dcn/models.py))
+  - Implement DCN training ([pmgt/dcn/trainer.py](pmgt/dcn/trainer.py))
 
 [2022.01.14]  
-  - NeuMF-PMGT 실험 진행  
+  - Experiment for NeuMF-PMGT  
 
 [2022.01.13]  
-  - PMGT pre-training 진행  
+  - Implement PMGT pre-training  
 
 [2022.01.12]  
-  - PMGT training 구현 ([pmgt/pmgt/trainer.py](pmgt/pmgt/trainer.py))  
+  - Implement PMGT training ([pmgt/pmgt/trainer.py](pmgt/pmgt/trainer.py))  
 
 [2022.01.11]  
- - Graph structure reconstruction loss 구현 ([pmgt/pmgt/models.py](pmgt/pmgt/models.py))  
- - Node feature reconstruction loss 구현  
+ - Implement Graph structure reconstruction loss ([pmgt/pmgt/models.py](pmgt/pmgt/models.py))  
+ - Implement Node feature reconstruction loss  
 
 [2022.01.10]  
- - MCNSampling 구현 ([pmgt/pmgt/datasets.py](pmgt/pmgt/datasets.py))  
+ - Implement MCNSampling ([pmgt/pmgt/datasets.py](pmgt/pmgt/datasets.py))  
 
 [2022.01.09]  
- - PMGT 모델 구현 ([pmgt/pmgt/modeling_pmgt.py](pmgt/pmgt/modeling_pmgt.py))  
+ - Implement PMGT ([pmgt/pmgt/modeling_pmgt.py](pmgt/pmgt/modeling_pmgt.py))  
 
 [2022.01.08]  
- - 하이퍼 파라미터 search for NCF (VG 데이터셋)  
+ - HPO for NCF (VG dataset)  
 
 [2022.01.07]  
- - NCF Training 구현  
- - VG 데이터셋 NCF Baseline (except NeuMF-pre) 실험
+ - Implment NCF Training  
+ - Experiment on VG dataset over NCF Baseline (except NeuMF-pre)
 
 [2022.01.06]  
- - VG 데이터셋 통계  
- - NCF Dataset 구현  
- - NDCG@k 구현  
- - Recall@k 구현
+ - Report stats for VG dataset  
+ - Implement NCF Dataset  
+ - Implement NDCG@k  
+ - Implement Recall@k 
 
 [2022.01.05]  
- - Item Graph 생성  
- - NCF 구현
+ - Implement Item Graph  
+ - Implement NCF
 
 [2022.01.04]  
- - 이미지 다운로드 ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))  
- - Visual (Inception-v4) & Textual (BERT) feature 추출
+ - Download Images ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))  
+ - Extract Visual (Inception-v4) & Textual (BERT) features
 
 [2022.01.03]  
- - Amazon Review 데이터셋 다운로드 ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))
+ - Download Amazon Review ([notebooks/PMGT.ipynb](notebooks/PMGT.ipynb))
